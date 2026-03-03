@@ -2,6 +2,12 @@ name: Windows Tauri Build
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_to_oss:
+        description: "Publish to OSS after build"
+        required: true
+        default: false
+        type: boolean
   push:
     branches:
       - main
@@ -48,7 +54,15 @@ jobs:
         run: |
           node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));if(!j.build) j.build={};j.build.beforeBuildCommand='';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
 
+      - name: Force NSIS only in CI
+        shell: bash
+        run: |
+          node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.bundle=j.bundle||{};j.bundle.targets=['nsis'];fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
+
       - name: Build Windows NSIS Bundle
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: pnpm tauri build --target x86_64-pc-windows-msvc --bundles nsis
 
       - name: Upload NSIS artifacts
@@ -58,3 +72,34 @@ jobs:
           name: windows-nsis
           path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*
           if-no-files-found: ignore
+
+      - name: Install ossutil
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_to_oss == true }}
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://gosspublic.alicdn.com/ossutil/1.7.16/ossutil64.zip" -OutFile "ossutil64.zip"
+          Expand-Archive -Path "ossutil64.zip" -DestinationPath "."
+          Get-ChildItem -Recurse -Path "." | Where-Object { $_.Name -eq "ossutil64.exe" } | Select-Object -First 1 | ForEach-Object { $_.FullName } > ossutil_path.txt
+
+      - name: Publish to OSS
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_to_oss == true }}
+        shell: pwsh
+        env:
+          OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+          OSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
+          OSS_BUCKET: ${{ secrets.OSS_BUCKET }}
+        run: |
+          if (-not $env:OSS_ACCESS_KEY_ID -or -not $env:OSS_ACCESS_KEY_SECRET -or -not $env:OSS_ENDPOINT -or -not $env:OSS_BUCKET) {
+            throw "Missing OSS secrets. Required: OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET, OSS_ENDPOINT, OSS_BUCKET"
+          }
+          $ossutil = Get-Content ossutil_path.txt | Select-Object -First 1
+          $bundleDir = "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis"
+          $exe = Get-ChildItem -Path $bundleDir -Filter *.exe | Select-Object -First 1
+          $sig = Get-ChildItem -Path $bundleDir -Filter *.sig | Select-Object -First 1
+          $latest = Get-ChildItem -Path $bundleDir -Filter latest.json -Recurse | Select-Object -First 1
+          if (-not $exe -or -not $sig -or -not $latest) { throw "Missing artifact(s): exe/sig/latest.json" }
+          $dest = "oss://$($env:OSS_BUCKET)/d-space/supplier-desktop"
+          & $ossutil cp $exe.FullName "$dest/" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
+          & $ossutil cp $sig.FullName "$dest/" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
+          & $ossutil cp $latest.FullName "$dest/latest.json" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
