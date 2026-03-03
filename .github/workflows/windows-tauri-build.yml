@@ -35,8 +35,18 @@ jobs:
         with:
           workspaces: src-tauri -> target
 
+      - name: Strip monorepo-only deps for standalone CI
+        shell: bash
+        run: |
+          node -e "const fs=require('fs');const p='package.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));for(const k of ['dependencies','devDependencies','optionalDependencies']){if(!j[k]) continue;for(const name of Object.keys(j[k])){if(name.startsWith('@monorepo/')) delete j[k][name];}}fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
+
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
+
+      - name: Disable frontend rebuild in CI (use committed dist)
+        shell: bash
+        run: |
+          node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));if(!j.build) j.build={};j.build.beforeBuildCommand='';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
 
       - name: Build Windows Bundle
         run: pnpm tauri build --target x86_64-pc-windows-msvc
