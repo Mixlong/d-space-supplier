@@ -39,6 +39,13 @@ export function getMyStats() {
   })
 }
 
+export function getMyMetrics() {
+  return request({
+    url: '/vendor/delivery/myMetrics',
+    method: 'get'
+  })
+}
+
 export function confirmReplyDate(params) {
   return request({
     url: '/vendor/delivery/reply-date',

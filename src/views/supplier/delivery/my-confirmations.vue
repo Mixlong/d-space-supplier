@@ -22,16 +22,22 @@
       </el-form-item>
       <template #extra-actions>
         <div class="quality-stats">
+          <el-tooltip content="订单准交率(%)" placement="top">
+            <div class="quality-stats__item">
+              <el-icon :size="16" color="#409eff"><Timer /></el-icon>
+              <span>{{ qualitySummary.onTimeDeliveryRate }}</span>
+            </div>
+          </el-tooltip>
           <el-tooltip content="批次合格率" placement="top">
             <div class="quality-stats__item">
               <el-icon :size="16" color="#67c23a"><CircleCheck /></el-icon>
-              <span>{{ qualitySummary.batchPassRate }}</span>
+              <span>{{ qualitySummary.batchQualificationRate }}</span>
             </div>
           </el-tooltip>
-          <el-tooltip content="特采率" placement="top">
+          <el-tooltip content="总特采批次数" placement="top">
             <div class="quality-stats__item">
               <el-icon :size="16" color="#e6a23c"><Star /></el-icon>
-              <span>{{ qualitySummary.specialRate }}</span>
+              <span>{{ qualitySummary.totalSpecialProcurementBatchCount }}</span>
             </div>
           </el-tooltip>
         </div>
@@ -76,6 +82,26 @@
           align="center"
         />
         <el-table-column
+          prop="defectiveRate"
+          label="不良率"
+          min-width="90"
+          align="center"
+        />
+        <el-table-column
+          prop="isSpecialProcurement"
+          label="是否特采"
+          min-width="90"
+          align="center"
+        >
+          <template #default="{ row }">
+            <el-tag
+              :type="row.isSpecialProcurement == 1 ? 'danger' : 'info'"
+              size="small"
+              >{{ row.isSpecialProcurement == 1 ? "是" : "否" }}</el-tag
+            >
+          </template>
+        </el-table-column>
+        <el-table-column
           prop="overdueDays"
           label="超期天数"
           width="90"
@@ -108,8 +134,8 @@
 
 <script setup>
 import { ElMessage } from "element-plus";
-import { getMyConfirmations } from "@/api/vendor-delivery";
-import { CircleCheck, Star } from '@element-plus/icons-vue';
+import { getMyConfirmations, getMyMetrics } from "@/api/vendor-delivery";
+import { CircleCheck, Star, Timer } from '@element-plus/icons-vue';
 
 const defaultQuery = { poCode: "", beginTime: "", endTime: "", p: 1, l: 10 };
 
@@ -119,9 +145,40 @@ const tableData = ref([]);
 const dateRange = ref([]);
 const queryParams = reactive({ ...defaultQuery });
 const qualitySummary = reactive({
-  batchPassRate: "--",
-  specialRate: "--",
+  onTimeDeliveryRate: "--",
+  batchQualificationRate: "--",
+  totalSpecialProcurementBatchCount: "--",
 });
+
+function resetMetrics() {
+  qualitySummary.onTimeDeliveryRate = "--";
+  qualitySummary.batchQualificationRate = "--";
+  qualitySummary.totalSpecialProcurementBatchCount = "--";
+}
+
+function formatPercent(val) {
+  if (val === null || val === undefined || val === "") return "--";
+  const num = Number(val);
+  if (Number.isNaN(num)) return "--";
+  return `${num}%`;
+}
+
+function getMetrics() {
+  getMyMetrics()
+    .then((res) => {
+      const data = res?.data || {};
+      qualitySummary.onTimeDeliveryRate = formatPercent(data.onTimeDeliveryRate);
+      qualitySummary.batchQualificationRate = formatPercent(data.batchQualificationRate);
+      const specialCount = data.totalSpecialProcurementBatchCount;
+      qualitySummary.totalSpecialProcurementBatchCount =
+        specialCount === null || specialCount === undefined || specialCount === ""
+          ? "--"
+          : String(specialCount);
+    })
+    .catch(() => {
+      resetMetrics();
+    });
+}
 
 
 function buildQuery() {
@@ -144,27 +201,10 @@ function getList() {
       const list = data.list || [];
       tableData.value = list;
       total.value = Number(data.total || 0);
-
-      if (!list.length) {
-        qualitySummary.batchPassRate = "--";
-        qualitySummary.specialRate = "--";
-        return;
-      }
-
-      const passedCount = list.filter(
-        (item) => item.iqcResult === "合格" || item.iqcPassed === true
-      ).length;
-      const specialCount = list.filter(
-        (item) => item.specialAdopt === true || item.specialAdopt === "是"
-      ).length;
-      qualitySummary.batchPassRate = `${((passedCount / list.length) * 100).toFixed(1)}%`;
-      qualitySummary.specialRate = `${((specialCount / list.length) * 100).toFixed(1)}%`;
     })
     .catch((error) => {
       tableData.value = [];
       total.value = 0;
-      qualitySummary.batchPassRate = "--";
-      qualitySummary.specialRate = "--";
       ElMessage.error(
         error?.message === "Network Error"
           ? "网络连接失败，请检查后端服务是否可用"
@@ -190,6 +230,7 @@ function resetQuery() {
 
 onMounted(() => {
   getList();
+  getMetrics();
 });
 </script>
 

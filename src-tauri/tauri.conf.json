@@ -16,8 +16,8 @@
         "title": "D-Space（供应商管理）",
         "width": 1480,
         "height": 1000,
-        "decorations": false,
-        "transparent": true,
+        "decorations": true,
+        "transparent": false,
         "shadow": true,
         "resizable": true,
         "fullscreen": false

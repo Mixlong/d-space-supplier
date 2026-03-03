@@ -56,12 +56,6 @@
                     min-width="160"
                 />
                 <el-table-column
-                    prop="rowNo"
-                    label="行号"
-                    width="70"
-                    align="center"
-                />
-                <el-table-column
                     prop="invCode"
                     label="物料编码"
                     min-width="130"
@@ -167,7 +161,9 @@
                         v-model="submitForm.deliveryQty"
                         :min="1"
                         :max="maxQty"
-                        :precision="2"
+                        :step="1"
+                        :step-strictly="true"
+                        :precision="0"
                         style="width: 100%"
                     />
                 </el-form-item>
@@ -309,7 +305,7 @@ const replyDateRules = {
 
 const maxQty = computed(() => {
     const val = Number(currentRow.value.remainingQty || 0);
-    return val > 0 ? val : 1;
+    return val > 0 ? Math.max(1, Math.floor(val)) : 1;
 });
 
 function statusType(s) {
