@@ -25,6 +25,7 @@
     "@monorepo/ruoyi-request-web": "workspace:*",
     "@monorepo/vue3-components": "workspace:*",
     "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-updater": "^2.9.0",
     "@vueuse/core": "13.3.0",
     "axios": "1.9.0",
     "element-plus": "2.9.9",
