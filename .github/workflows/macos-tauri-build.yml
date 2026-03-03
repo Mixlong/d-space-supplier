@@ -1,0 +1,108 @@
+name: macOS Tauri Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_to_oss:
+        description: "Publish to OSS after build"
+        required: true
+        default: false
+        type: boolean
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Strip monorepo-only deps for standalone CI
+        shell: bash
+        run: |
+          node -e "const fs=require('fs');const p='package.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));for(const k of ['dependencies','devDependencies','optionalDependencies']){if(!j[k]) continue;for(const name of Object.keys(j[k])){if(name.startsWith('@monorepo/')) delete j[k][name];}}fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Disable frontend rebuild in CI (use committed dist)
+        shell: bash
+        run: |
+          node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));if(!j.build) j.build={};j.build.beforeBuildCommand='';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
+
+      - name: Force app-only bundle in CI
+        shell: bash
+        run: |
+          node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.bundle=j.bundle||{};j.bundle.targets=['app'];fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
+
+      - name: Build macOS App Bundle
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm tauri build --bundles app
+
+      - name: Upload macOS artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: src-tauri/target/release/bundle/macos/*
+          if-no-files-found: ignore
+
+      - name: Install ossutil
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_to_oss == true }}
+        shell: bash
+        run: |
+          curl -fsSL -o ossutil.zip https://gosspublic.alicdn.com/ossutil/1.7.16/ossutilmac64.zip
+          unzip -o ossutil.zip -d .
+          chmod +x ./ossutil*/ossutil64
+
+      - name: Publish to OSS
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_to_oss == true }}
+        shell: bash
+        env:
+          OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+          OSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
+          OSS_BUCKET: ${{ secrets.OSS_BUCKET }}
+        run: |
+          set -euo pipefail
+          test -n "${OSS_ACCESS_KEY_ID:-}" && test -n "${OSS_ACCESS_KEY_SECRET:-}" && test -n "${OSS_ENDPOINT:-}" && test -n "${OSS_BUCKET:-}"
+          OSSUTIL=$(find . -type f -name ossutil64 | head -n 1)
+          BUNDLE_DIR="src-tauri/target/release/bundle"
+          APP_FILE=$(find "$BUNDLE_DIR" -type d -name '*.app' | head -n 1 || true)
+          TAR_FILE=$(find "$BUNDLE_DIR" -type f -name '*.tar.gz' | head -n 1 || true)
+          SIG_FILE=$(find "$BUNDLE_DIR" -type f -name '*.sig' | head -n 1 || true)
+          LATEST_JSON=$(find "$BUNDLE_DIR" -type f -name 'latest.json' | head -n 1 || true)
+          test -n "$APP_FILE"
+          DEST="oss://${OSS_BUCKET}/d-space/supplier-desktop/mac"
+          "$OSSUTIL" cp "$APP_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          if [ -n "$TAR_FILE" ] && [ -n "$SIG_FILE" ] && [ -n "$LATEST_JSON" ]; then
+            "$OSSUTIL" cp "$TAR_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+            "$OSSUTIL" cp "$SIG_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+            "$OSSUTIL" cp "$LATEST_JSON" "$DEST/latest.json" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          fi
