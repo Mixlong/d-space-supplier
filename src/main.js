@@ -1,7 +1,5 @@
 import { createApp } from "vue"
 
-import Cookies from "js-cookie"
-
 import ElementPlus from "element-plus"
 import "element-plus/dist/index.css"
 import locale from "element-plus/es/locale/lang/zh-cn"
@@ -32,7 +30,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 app.use(ElementPlus, {
   locale: locale,
-  size: Cookies.get("size") || "small",
+  size: localStorage.getItem("size") || "small",
 })
 
 app.component("SearchBar", SearchBar)

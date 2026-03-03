@@ -96,7 +96,7 @@ $menu-background: #1b294e;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 84px;
+  height: 130px;
   padding: 0 15px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 

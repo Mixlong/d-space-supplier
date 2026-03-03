@@ -6,6 +6,7 @@
           v-model="queryParams.poCode"
           placeholder="请输入采购订单号"
           clearable
+          style="width: 200px"
         />
       </el-form-item>
       <el-form-item label="是否超期">
@@ -98,6 +99,7 @@
 
 <script setup>
 import { getMyTimeliness } from "@/api/vendor-delivery";
+import { ElMessage } from "element-plus";
 
 const defaultQuery = {
   poCode: "",
@@ -134,6 +136,15 @@ function getList() {
       const data = res.data || {};
       tableData.value = data.list || [];
       total.value = Number(data.total || 0);
+    })
+    .catch((error) => {
+      tableData.value = [];
+      total.value = 0;
+      if (error?.message === "Network Error") {
+        ElMessage.error("网络连接失败，请检查后端服务是否可用");
+      } else {
+        ElMessage.error("获取数据失败，请稍后重试");
+      }
     })
     .finally(() => {
       loading.value = false;

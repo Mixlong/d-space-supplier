@@ -10,11 +10,15 @@
     "beforeBuildCommand": "pnpm build:prod"
   },
   "app": {
+    "macOSPrivateApi": false,
     "windows": [
       {
         "title": "D-Space（供应商管理）",
-        "width": 1280,
-        "height": 800,
+        "width": 1480,
+        "height": 1000,
+        "decorations": false,
+        "transparent": true,
+        "shadow": true,
         "resizable": true,
         "fullscreen": false
       }
@@ -37,12 +41,12 @@
   },
   "plugins": {
     "updater": {
-      "active": false,
+      "active": true,
       "dialog": true,
       "endpoints": [
-        "https://example.com/tauri-updater/latest.json"
+        "https://bikewise.oss-cn-shenzhen.aliyuncs.com/d-space/supplier-desktop/latest.json"
       ],
-      "pubkey": "REPLACE_WITH_TAURI_UPDATER_PUBKEY"
+      "pubkey": "RWQkwIUhw2TDtSLOs/y9hvvXzgx7raPz2hMuie0fyUSsfLFnIUXs5AEF"
     }
   }
 }

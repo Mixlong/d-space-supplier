@@ -22,8 +22,15 @@ const useUserStore = defineStore('user', {
       return new Promise((resolve, reject) => {
         login(username, password, code, uuid)
           .then(res => {
-            setToken(res.token)
-            this.token = res.token
+            if (!res || Number(res.code) !== 200) {
+              reject(new Error(res?.msg || '登录失败'))
+              return
+            }
+            const token = res.token || res.data?.token || ''
+            if (token) {
+              setToken(token)
+            }
+            this.token = token
             resolve()
           })
           .catch(error => {
@@ -58,18 +65,22 @@ const useUserStore = defineStore('user', {
       })
     },
     logOut() {
-      return new Promise((resolve, reject) => {
+      const clearLocalState = () => {
+        this.token = ''
+        this.roles = []
+        this.permissions = []
+        removeToken()
+        sessionStorage.clear()
+      }
+
+      return new Promise((resolve) => {
         logout(this.token)
-          .then(() => {
-            this.token = ''
-            this.roles = []
-            this.permissions = []
-            removeToken()
-            sessionStorage.clear()
-            resolve()
+          .catch(() => {
+            // 后端不可达时仍允许前端完成退出，避免界面卡住
           })
-          .catch(error => {
-            reject(error)
+          .finally(() => {
+            clearLocalState()
+            resolve()
           })
       })
     }

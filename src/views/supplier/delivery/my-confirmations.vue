@@ -6,6 +6,7 @@
           v-model="queryParams.poCode"
           placeholder="请输入采购订单号"
           clearable
+          style="width: 200px"
         />
       </el-form-item>
       <el-form-item label="时间范围">
@@ -106,6 +107,7 @@
 </template>
 
 <script setup>
+import { ElMessage } from "element-plus";
 import { getMyConfirmations } from "@/api/vendor-delivery";
 import { CircleCheck, Star } from '@element-plus/icons-vue';
 
@@ -135,135 +137,43 @@ function buildQuery() {
 }
 
 function getList() {
-  // 模拟数据
-  const mockData = [
-    {
-      id: 1,
-      poCode: 'PO20260201001',
-      poRowNo: 1,
-      invCode: 'INV-001',
-      deliveryQty: 400,
-      actualDeliveryDate: '2026-03-10',
-      overdueDays: 0,
-      remark: '首批交付，已完成IQC检验',
-      createTime: '2026-03-10 14:30:00',
-      iqcResult: '合格',
-      iqcPassed: true,
-      specialAdopt: false
-    },
-    {
-      id: 2,
-      poCode: 'PO20260201001',
-      poRowNo: 2,
-      invCode: 'INV-002',
-      deliveryQty: 500,
-      actualDeliveryDate: '2026-03-08',
-      overdueDays: -2,
-      remark: '提前交付',
-      createTime: '2026-03-08 09:15:00',
-      iqcResult: '合格',
-      iqcPassed: true,
-      specialAdopt: false
-    },
-    {
-      id: 3,
-      poCode: 'PO20260201002',
-      poRowNo: 1,
-      invCode: 'INV-003',
-      deliveryQty: 1000,
-      actualDeliveryDate: '2026-03-15',
-      overdueDays: 5,
-      remark: '超期交付，已申请特采',
-      createTime: '2026-03-15 16:20:00',
-      iqcResult: '不合格',
-      iqcPassed: false,
-      specialAdopt: true
-    },
-    {
-      id: 4,
-      poCode: 'PO20260201003',
-      poRowNo: 1,
-      invCode: 'INV-004',
-      deliveryQty: 300,
-      actualDeliveryDate: '2026-03-12',
-      overdueDays: 0,
-      remark: '正常交付',
-      createTime: '2026-03-12 11:00:00',
-      iqcResult: '合格',
-      iqcPassed: true,
-      specialAdopt: false
-    },
-    {
-      id: 5,
-      poCode: 'PO20260201003',
-      poRowNo: 2,
-      invCode: 'INV-005',
-      deliveryQty: 800,
-      actualDeliveryDate: '2026-03-18',
-      overdueDays: 3,
-      remark: '部分超期',
-      createTime: '2026-03-18 13:45:00',
-      iqcResult: '合格',
-      iqcPassed: true,
-      specialAdopt: false
-    },
-    {
-      id: 6,
-      poCode: 'PO20260201004',
-      poRowNo: 1,
-      invCode: 'INV-006',
-      deliveryQty: 200,
-      actualDeliveryDate: '2026-03-05',
-      overdueDays: -5,
-      remark: '紧急订单，提前交付',
-      createTime: '2026-03-05 10:30:00',
-      iqcResult: '合格',
-      iqcPassed: true,
-      specialAdopt: false
-    },
-    {
-      id: 7,
-      poCode: 'PO20260201005',
-      poRowNo: 1,
-      invCode: 'INV-007',
-      deliveryQty: 600,
-      actualDeliveryDate: '2026-03-20',
-      overdueDays: 7,
-      remark: '严重超期，特采处理中',
-      createTime: '2026-03-20 15:00:00',
-      iqcResult: '不合格',
-      iqcPassed: false,
-      specialAdopt: true
-    }
-  ];
-  
-  // 计算质量汇总
-  const list = mockData;
-  const passedCount = list.filter(
-    (item) => item.iqcResult === '合格' || item.iqcPassed === true
-  ).length;
-  const specialCount = list.filter(
-    (item) => item.specialAdopt === true || item.specialAdopt === '是'
-  ).length;
-  qualitySummary.batchPassRate = `${((passedCount / list.length) * 100).toFixed(1)}%`;
-  qualitySummary.specialRate = `${((specialCount / list.length) * 100).toFixed(1)}%`;
-  
-  tableData.value = mockData;
-  total.value = mockData.length;
-  loading.value = false;
-  
-  // 实际API调用 (注释掉)
-  // loading.value = true;
-  // getMyConfirmations(buildQuery())
-  //   .then((res) => {
-  //     const data = res.data || {};
-  //     tableData.value = data.list || [];
-  //     total.value = Number(data.total || 0);
-  //     // ... 原有计算逻辑
-  //   })
-  //   .finally(() => {
-  //     loading.value = false;
-  //   });
+  loading.value = true;
+  getMyConfirmations(buildQuery())
+    .then((res) => {
+      const data = res.data || {};
+      const list = data.list || [];
+      tableData.value = list;
+      total.value = Number(data.total || 0);
+
+      if (!list.length) {
+        qualitySummary.batchPassRate = "--";
+        qualitySummary.specialRate = "--";
+        return;
+      }
+
+      const passedCount = list.filter(
+        (item) => item.iqcResult === "合格" || item.iqcPassed === true
+      ).length;
+      const specialCount = list.filter(
+        (item) => item.specialAdopt === true || item.specialAdopt === "是"
+      ).length;
+      qualitySummary.batchPassRate = `${((passedCount / list.length) * 100).toFixed(1)}%`;
+      qualitySummary.specialRate = `${((specialCount / list.length) * 100).toFixed(1)}%`;
+    })
+    .catch((error) => {
+      tableData.value = [];
+      total.value = 0;
+      qualitySummary.batchPassRate = "--";
+      qualitySummary.specialRate = "--";
+      ElMessage.error(
+        error?.message === "Network Error"
+          ? "网络连接失败，请检查后端服务是否可用"
+          : "获取已交订单失败，请稍后重试"
+      );
+    })
+    .finally(() => {
+      loading.value = false;
+    });
 }
 
 function handleQuery() {

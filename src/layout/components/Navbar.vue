@@ -30,7 +30,7 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import { ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import Breadcrumb from './Breadcrumb.vue'
 import Hamburger from './Hamburger.vue'
 import useAppStore from '@/store/modules/app'
@@ -51,11 +51,16 @@ function logout() {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
-  }).then(() => {
-    userStore.logOut().then(() => {
-      router.push('/login')
-    })
-  }).catch(() => {})
+  }).then(async () => {
+    await userStore.logOut()
+    router.push('/login')
+    ElMessage.success('已退出登录')
+  }).catch((error) => {
+    // 用户点击取消时不提示；其他异常给出反馈
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error('退出失败，请稍后重试')
+    }
+  })
 }
 </script>
 

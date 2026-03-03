@@ -10,6 +10,7 @@
                     v-model="queryParams.poCode"
                     placeholder="请输入采购订单号"
                     clearable
+                    style="width: 200px"
                 />
             </el-form-item>
             <el-form-item label="请购单号">
@@ -17,6 +18,7 @@
                     v-model="queryParams.appCode"
                     placeholder="请输入请购单号"
                     clearable
+                    style="width: 200px"
                 />
             </el-form-item>
             <el-form-item label="时间范围">
@@ -329,97 +331,25 @@ function buildQuery() {
 }
 
 function getList() {
-    // 模拟数据
-    const mockData = [
-        {
-            id: 1,
-            poCode: "PO20260201001",
-            rowNo: 1,
-            invCode: "INV-001",
-            quantity: 1000,
-            deliveredQty: 600,
-            remainingQty: 400,
-            planArriveDate: "2026-03-15",
-            vendorReplyDate: "2026-03-10",
-            deliveryStatus: "部分交付",
-        },
-        {
-            id: 2,
-            poCode: "PO20260201001",
-            rowNo: 2,
-            invCode: "INV-002",
-            quantity: 500,
-            deliveredQty: 0,
-            remainingQty: 500,
-            planArriveDate: "2026-03-20",
-            vendorReplyDate: "",
-            deliveryStatus: "未交付",
-        },
-        {
-            id: 3,
-            poCode: "PO20260201002",
-            rowNo: 1,
-            invCode: "INV-003",
-            quantity: 2000,
-            deliveredQty: 2000,
-            remainingQty: 0,
-            planArriveDate: "2026-02-28",
-            vendorReplyDate: "2026-02-20",
-            deliveryStatus: "已完成",
-        },
-        {
-            id: 4,
-            poCode: "PO20260201003",
-            rowNo: 1,
-            invCode: "INV-004",
-            quantity: 800,
-            deliveredQty: 300,
-            remainingQty: 500,
-            planArriveDate: "2026-03-10",
-            vendorReplyDate: "",
-            deliveryStatus: "部分交付",
-        },
-        {
-            id: 5,
-            poCode: "PO20260201003",
-            rowNo: 2,
-            invCode: "INV-005",
-            quantity: 1500,
-            deliveredQty: 0,
-            remainingQty: 1500,
-            planArriveDate: "2026-03-25",
-            vendorReplyDate: "2026-03-18",
-            deliveryStatus: "未交付",
-        },
-        {
-            id: 6,
-            poCode: "PO20260201004",
-            rowNo: 1,
-            invCode: "INV-006",
-            quantity: 300,
-            deliveredQty: 300,
-            remainingQty: 0,
-            planArriveDate: "2026-02-20",
-            vendorReplyDate: "2026-02-15",
-            deliveryStatus: "已完成",
-        },
-    ];
-
-    tableData.value = mockData;
-    total.value = mockData.length;
-    loading.value = false;
-
-    // 实际API调用 (注释掉)
-    // loading.value = true;
-    // getMyPurchaseOrders(buildQuery())
-    //   .then((res) => {
-    //     const data = res.data || {};
-    //     tableData.value = data.list || [];
-    //     total.value = Number(data.total || 0);
-    //   })
-    //   .finally(() => {
-    //     loading.value = false;
-    //   });
+    loading.value = true;
+    getMyPurchaseOrders(buildQuery())
+        .then((res) => {
+            const data = res.data || {};
+            tableData.value = data.list || [];
+            total.value = Number(data.total || 0);
+        })
+        .catch((error) => {
+            tableData.value = [];
+            total.value = 0;
+            ElMessage.error(
+                error?.message === "Network Error"
+                    ? "网络连接失败，请检查后端服务是否可用"
+                    : "获取未交订单失败，请稍后重试"
+            );
+        })
+        .finally(() => {
+            loading.value = false;
+        });
 }
 
 function handleQuery() {
