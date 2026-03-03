@@ -37,12 +37,12 @@
   },
   "plugins": {
     "updater": {
-      "active": false,
+      "active": true,
       "dialog": true,
       "endpoints": [
-        "https://example.com/tauri-updater/latest.json"
+        "https://bikewise.oss-cn-shenzhen.aliyuncs.com/d-space/supplier-desktop/windows/latest.json"
       ],
-      "pubkey": "REPLACE_WITH_TAURI_UPDATER_PUBKEY"
+      "pubkey": "RWQkwIUhw2TDtSLOs/y9hvvXzgx7raPz2hMuie0fyUSsfLFnIUXs5AEF"
     }
   }
 }
