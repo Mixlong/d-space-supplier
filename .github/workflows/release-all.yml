@@ -79,10 +79,10 @@ jobs:
           OSS_BUCKET: ${{ secrets.OSS_BUCKET }}
         run: |
           $ossutil = Get-Content ossutil_path.txt | Select-Object -First 1
-          $bundleDir = "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis"
-          $exe = Get-ChildItem -Path $bundleDir -Filter *.exe | Select-Object -First 1
-          $sig = Get-ChildItem -Path $bundleDir -Filter *.sig | Select-Object -First 1
-          $latest = Get-ChildItem -Path $bundleDir -Filter latest.json -Recurse | Select-Object -First 1
+          $bundleRoot = "src-tauri/target/x86_64-pc-windows-msvc/release/bundle"
+          $exe = Get-ChildItem -Path "$bundleRoot/nsis" -Filter *.exe -Recurse | Select-Object -First 1
+          $sig = Get-ChildItem -Path $bundleRoot -Filter *.sig -Recurse | Select-Object -First 1
+          $latest = Get-ChildItem -Path $bundleRoot -Filter latest.json -Recurse | Select-Object -First 1
           if (-not $exe -or -not $sig -or -not $latest) { throw "Missing artifact(s): exe/sig/latest.json" }
           $dest = "oss://$($env:OSS_BUCKET)/d-space/supplier-desktop/windows"
           & $ossutil cp $exe.FullName "$dest/" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
@@ -144,9 +144,8 @@ jobs:
         if: ${{ inputs.publish_to_oss == true }}
         shell: bash
         run: |
-          curl -fsSL -o ossutil.zip https://gosspublic.alicdn.com/ossutil/1.7.16/ossutilmac64.zip
-          unzip -o ossutil.zip -d .
-          chmod +x ./ossutil*/ossutil64
+          curl -fsSL -o ossutil64 https://gosspublic.alicdn.com/ossutil/1.7.16/ossutilmac64
+          chmod +x ./ossutil64
 
       - name: Publish macOS to OSS
         if: ${{ inputs.publish_to_oss == true }}
@@ -158,7 +157,7 @@ jobs:
           OSS_BUCKET: ${{ secrets.OSS_BUCKET }}
         run: |
           set -euo pipefail
-          OSSUTIL=$(find . -type f -name ossutil64 | head -n 1)
+          OSSUTIL=./ossutil64
           BUNDLE_DIR="src-tauri/target/release/bundle"
           APP_FILE=$(find "$BUNDLE_DIR" -type d -name '*.app' | head -n 1 || true)
           TAR_FILE=$(find "$BUNDLE_DIR" -type f -name '*.tar.gz' | head -n 1 || true)
