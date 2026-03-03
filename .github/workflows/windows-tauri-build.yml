@@ -48,8 +48,8 @@ jobs:
         run: |
           node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));if(!j.build) j.build={};j.build.beforeBuildCommand='';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
 
-      - name: Build Windows Bundle
-        run: pnpm tauri build --target x86_64-pc-windows-msvc
+      - name: Build Windows NSIS Bundle
+        run: pnpm tauri build --target x86_64-pc-windows-msvc --bundles nsis
 
       - name: Upload NSIS artifacts
         if: always()
@@ -57,12 +57,4 @@ jobs:
         with:
           name: windows-nsis
           path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*
-          if-no-files-found: ignore
-
-      - name: Upload MSI artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-msi
-          path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*
           if-no-files-found: ignore
