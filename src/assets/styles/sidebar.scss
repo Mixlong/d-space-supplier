@@ -1,0 +1,145 @@
+// Sidebar layout styles for supplier-admin
+// Modeled after admin-v3 layout pattern
+
+$sidebar-width: 240px;
+$menu-background: #1b294e;
+$menu-color: #ffffff;
+$menu-color-active: #f4f4f5;
+$sub-menu-background: #1b294e;
+$sub-menu-hover: #263445;
+$menu-active-background: #4ea3ff;
+
+.sidebar-container {
+  transition: width 0.28s;
+  width: $sidebar-width !important;
+  background-color: $menu-background;
+  height: 100%;
+  position: fixed;
+  font-size: 0px;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1001;
+  overflow: hidden;
+
+  .scrollbar-wrapper {
+    overflow-x: hidden !important;
+  }
+
+  .el-scrollbar__bar.is-vertical {
+    right: 0px;
+  }
+
+  .is-horizontal {
+    display: none;
+  }
+
+  a {
+    display: inline-block;
+    width: 100%;
+    overflow: hidden;
+    color: inherit;
+    text-decoration: none !important;
+  }
+
+  a:hover,
+  a:focus,
+  a:active {
+    color: inherit;
+    text-decoration: none !important;
+  }
+
+  .el-menu {
+    border: none;
+    height: 100%;
+    width: 100% !important;
+    background-color: $menu-background !important;
+  }
+
+  .el-menu-item,
+  .el-sub-menu__title {
+    color: $menu-color;
+    background-color: transparent !important;
+
+    &:hover {
+      background-color: $sub-menu-hover !important;
+    }
+  }
+
+  .el-menu-item.is-active {
+    color: $menu-color-active;
+    background-color: $menu-active-background !important;
+  }
+
+  .el-sub-menu .el-menu-item:hover {
+    background-color: $sub-menu-hover !important;
+  }
+
+  .el-sub-menu .el-menu-item.is-active {
+    color: $menu-color-active;
+    background-color: $menu-active-background !important;
+  }
+}
+
+.hideSidebar {
+  .sidebar-container {
+    width: 54px !important;
+  }
+
+  .main-container {
+    margin-left: 54px;
+  }
+}
+
+.openSidebar {
+  .main-container {
+    margin-left: $sidebar-width;
+  }
+}
+
+.mobile {
+  .main-container {
+    margin-left: 0px;
+  }
+
+  .sidebar-container {
+    transition: transform 0.28s;
+    width: $sidebar-width !important;
+  }
+
+  &.hideSidebar {
+    .sidebar-container {
+      pointer-events: none;
+      transition-duration: 0.3s;
+      transform: translate3d(-#{$sidebar-width}, 0, 0);
+    }
+  }
+}
+
+/* 一级菜单样式 - 15px 加粗 */
+.sidebar-container .el-menu > .el-sub-menu > .el-sub-menu__title,
+.sidebar-container .el-menu > .el-sub-menu > .el-sub-menu__title span,
+.sidebar-container .el-menu > .el-menu-item,
+.sidebar-container .el-menu > .el-menu-item span {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+}
+
+/* 二级及以下菜单样式 - 14px 常规 */
+.sidebar-container .nest-menu .el-sub-menu__title,
+.sidebar-container .nest-menu .el-sub-menu__title span,
+.sidebar-container .nest-menu .el-menu-item,
+.sidebar-container .nest-menu .el-menu-item span,
+.sidebar-container .el-menu .el-sub-menu .el-menu-item,
+.sidebar-container .el-menu .el-sub-menu .el-menu-item span {
+  font-size: 14px !important;
+  font-weight: 400 !important;
+}
+
+/* 激活菜单加粗 */
+.sidebar-container .el-menu-item.is-active,
+.sidebar-container .el-menu-item.is-active span,
+.sidebar-container .el-sub-menu.is-active > .el-sub-menu__title,
+.sidebar-container .el-sub-menu.is-active > .el-sub-menu__title span {
+  font-weight: 700 !important;
+}
