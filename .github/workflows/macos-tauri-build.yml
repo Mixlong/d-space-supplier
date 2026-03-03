@@ -54,30 +54,33 @@ jobs:
         run: |
           node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));if(!j.build) j.build={};j.build.beforeBuildCommand='';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
 
-      - name: Force app-only bundle in CI
+      - name: Force app + dmg bundle in CI
         shell: bash
         run: |
-          node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.bundle=j.bundle||{};j.bundle.targets=['app'];fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
+          node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.bundle=j.bundle||{};j.bundle.targets=['app','dmg'];fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
 
-      - name: Build macOS App Bundle
+      - name: Build macOS App + DMG Bundle
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: pnpm tauri build --bundles app
+        run: pnpm tauri build --bundles app,dmg
 
       - name: Upload macOS artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: macos-app
-          path: src-tauri/target/release/bundle/macos/*
+          name: macos-app-dmg
+          path: |
+            src-tauri/target/release/bundle/macos/*
+            src-tauri/target/release/bundle/dmg/*
           if-no-files-found: ignore
 
       - name: Install ossutil
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_to_oss == true }}
         shell: bash
         run: |
-          curl -fsSL -o ossutil.zip https://gosspublic.alicdn.com/ossutil/1.7.16/ossutilmac64.zip
+          # ossutilmac64.zip 已失效，改为通用可用包
+          curl -fsSL -o ossutil.zip https://gosspublic.alicdn.com/ossutil/1.7.16/ossutil64.zip
           unzip -o ossutil.zip -d .
           chmod +x ./ossutil*/ossutil64
 
@@ -100,7 +103,11 @@ jobs:
           LATEST_JSON=$(find "$BUNDLE_DIR" -type f -name 'latest.json' | head -n 1 || true)
           test -n "$APP_FILE"
           DEST="oss://${OSS_BUCKET}/d-space/supplier-desktop/mac"
-          "$OSSUTIL" cp "$APP_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          if [ -d "$APP_FILE" ]; then
+            "$OSSUTIL" cp "$APP_FILE" "$DEST/" --recursive -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          else
+            "$OSSUTIL" cp "$APP_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          fi
           if [ -n "$TAR_FILE" ] && [ -n "$SIG_FILE" ] && [ -n "$LATEST_JSON" ]; then
             "$OSSUTIL" cp "$TAR_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
             "$OSSUTIL" cp "$SIG_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
