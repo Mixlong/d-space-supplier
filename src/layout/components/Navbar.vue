@@ -1,15 +1,15 @@
 <template>
-  <div class="navbar">
+  <div class="navbar" data-tauri-drag-region>
     <hamburger
       id="hamburger-container"
       :is-active="appStore.sidebar.opened"
-      class="hamburger-container"
+      class="hamburger-container no-drag"
       @toggleClick="toggleSideBar"
     />
 
     <breadcrumb id="breadcrumb-container" class="breadcrumb-container" />
 
-    <div class="right-menu">
+    <div class="right-menu no-drag">
       <el-dropdown class="avatar-container right-menu-item hover-effect" trigger="click">
         <div class="avatar-wrapper">
           <el-icon><UserFilled /></el-icon>
@@ -72,6 +72,7 @@ function logout() {
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
   display: flex;
   align-items: center;
+  user-select: none;
 
   .hamburger-container {
     display: flex;
@@ -140,5 +141,9 @@ function logout() {
       }
     }
   }
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
 }
 </style>

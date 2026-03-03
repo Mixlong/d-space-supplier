@@ -1,5 +1,6 @@
 <template>
   <div class="login-page" :style="{ backgroundImage: `url(${loginBg})` }">
+    <div class="login-drag-region" data-tauri-drag-region />
     <div class="panel-wrap">
       <section class="login-panel">
         <div class="brand">
@@ -138,6 +139,16 @@ function handleCaptchaError() {
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
+}
+
+.login-drag-region {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  z-index: 5;
+  -webkit-app-region: drag;
 }
 
 .panel-wrap {

@@ -33,6 +33,10 @@
         </el-menu>
       </el-scrollbar>
     </div>
+
+    <div class="version-section" :title="appVersion">
+      <span class="version-text">{{ appVersion }}</span>
+    </div>
   </div>
 </template>
 
@@ -45,6 +49,7 @@ import { constantRoutes } from '@/router'
 import logoImage from '@/assets/images/logo/logo.png'
 
 const route = useRoute()
+const appVersion = ref(`v${import.meta.env.VITE_APP_VERSION || '1.0.0'}`)
 
 const sidebarRoutes = computed(() => {
   return constantRoutes.filter(r => !r.hidden)
@@ -59,6 +64,19 @@ const activeMenu = computed(() => {
 })
 
 const collapse = computed(() => !useAppStore().sidebar.opened)
+
+onMounted(async () => {
+  try {
+    if (typeof window === 'undefined' || !window.__TAURI_INTERNALS__) return
+    const { getVersion } = await import('@tauri-apps/api/app')
+    const version = await getVersion()
+    if (version) {
+      appVersion.value = `v${version}`
+    }
+  } catch {
+    // ignore and keep fallback version
+  }
+})
 </script>
 
 <style lang="scss" scoped>
@@ -87,6 +105,16 @@ $menu-background: #1b294e;
         .logo-text {
           font-size: 24px;
         }
+      }
+    }
+
+    .version-section {
+      padding: 10px 4px;
+
+      .version-text {
+        display: block;
+        transform: scale(0.85);
+        transform-origin: center;
       }
     }
   }
@@ -144,7 +172,7 @@ $menu-background: #1b294e;
   background: $menu-background;
 
   :deep(.el-scrollbar) {
-    height: calc(100% - 100px);
+    height: 100%;
     border-radius: 6px;
   }
 
@@ -152,5 +180,25 @@ $menu-background: #1b294e;
     border: none;
     width: 100% !important;
   }
+}
+
+.version-section {
+  height: 48px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 8px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  line-height: 1;
+  user-select: text;
+}
+
+.version-text {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>
