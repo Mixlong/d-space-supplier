@@ -95,27 +95,24 @@ jobs:
             find "$BUNDLE_DIR" -type f | sed -n '1,200p'
             exit 1
           fi
-          if [ -z "$LATEST_JSON" ]; then
-            APP_VERSION="$(basename "$DMG_FILE" | sed -nE 's#.*_([0-9]+\\.[0-9]+\\.[0-9]+([-.][0-9A-Za-z.]+)?)_.*\\.dmg$#\\1#p')"
-            if [ -z "$APP_VERSION" ]; then
-              APP_VERSION=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('package.json','utf8'));process.stdout.write(c.version)")
-            fi
-            UPDATE_ENDPOINT=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));process.stdout.write((c.plugins&&c.plugins.updater&&c.plugins.updater.endpoints&&c.plugins.updater.endpoints[0])||'')")
-            BASE_URL=$(printf '%s' "$UPDATE_ENDPOINT" | sed 's#{{target}}/latest\.json$#darwin#')
-            TAR_URL="${BASE_URL}/$(basename "$TAR_FILE")"
-            GENERATED_LATEST="${RUNNER_TEMP}/latest.json"
-            node -e "const fs=require('fs');const out=process.argv[1];const version=process.argv[2];const tarUrl=process.argv[3];const sigFile=process.argv[4];const sig=fs.readFileSync(sigFile,'utf8').trim();const data={version,notes:'',pub_date:new Date().toISOString(),url:tarUrl,signature:sig};fs.writeFileSync(out,JSON.stringify(data,null,2)+'\\n');" "$GENERATED_LATEST" "$APP_VERSION" "$TAR_URL" "$SIG_FILE"
-            LATEST_JSON="$GENERATED_LATEST"
-            echo "Generated latest.json at $LATEST_JSON"
-          fi
+          FIXED_DMG_NAME="D-Space.dmg"
+          FIXED_TAR_NAME="D-Space.tar.gz"
+          FIXED_SIG_NAME="D-Space.tar.gz.sig"
+          FIXED_TAR_URL="https://${OSS_BUCKET}.oss-${REGION}.aliyuncs.com/d-space/supplier-desktop/darwin/${FIXED_TAR_NAME}"
+          APP_VERSION=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('package.json','utf8'));process.stdout.write(c.version)")
+          GENERATED_LATEST="${RUNNER_TEMP}/latest.json"
+          node -e "const fs=require('fs');const out=process.argv[1];const version=process.argv[2];const tarUrl=process.argv[3];const sigFile=process.argv[4];const sig=fs.readFileSync(sigFile,'utf8').trim();const data={version,notes:'',pub_date:new Date().toISOString(),url:tarUrl,signature:sig};fs.writeFileSync(out,JSON.stringify(data,null,2)+'\\n');" "$GENERATED_LATEST" "$APP_VERSION" "$FIXED_TAR_URL" "$SIG_FILE"
+          LATEST_JSON="$GENERATED_LATEST"
+          echo "Generated latest.json at $LATEST_JSON"
 
           DEST="oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin"
-          FIXED_DMG_NAME="D-Space（供应商管理）.dmg"
           "$OSSUTIL" --region "$REGION" rm "$DEST/Contents" --recursive -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
           "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*.dmg" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
+          "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*.tar.gz" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
+          "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*.tar.gz.sig" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
           "$OSSUTIL" --region "$REGION" cp "$DMG_FILE" "$DEST/$FIXED_DMG_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
-          "$OSSUTIL" --region "$REGION" cp "$TAR_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
-          "$OSSUTIL" --region "$REGION" cp "$SIG_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          "$OSSUTIL" --region "$REGION" cp "$TAR_FILE" "$DEST/$FIXED_TAR_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          "$OSSUTIL" --region "$REGION" cp "$SIG_FILE" "$DEST/$FIXED_SIG_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
           "$OSSUTIL" --region "$REGION" cp "$LATEST_JSON" "$DEST/latest.json" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
 
   publish-windows:
@@ -190,21 +187,18 @@ jobs:
             find "$BUNDLE_DIR" -type f | sed -n '1,200p'
             exit 1
           fi
-          if [ -z "$LATEST_JSON" ]; then
-            APP_VERSION="$(basename "$EXE_FILE" | sed -nE 's#.*_([0-9]+\\.[0-9]+\\.[0-9]+([-.][0-9A-Za-z.]+)?)_.*\\.exe$#\\1#p')"
-            if [ -z "$APP_VERSION" ]; then
-              APP_VERSION=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('package.json','utf8'));process.stdout.write(c.version)")
-            fi
-            UPDATE_ENDPOINT=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));process.stdout.write((c.plugins&&c.plugins.updater&&c.plugins.updater.endpoints&&c.plugins.updater.endpoints[0])||'')")
-            BASE_URL=$(printf '%s' "$UPDATE_ENDPOINT" | sed 's#{{target}}/latest\.json$#windows#')
-            EXE_URL="${BASE_URL}/$(basename "$EXE_FILE")"
-            GENERATED_LATEST="${RUNNER_TEMP}/latest.json"
-            node -e "const fs=require('fs');const out=process.argv[1];const version=process.argv[2];const exeUrl=process.argv[3];const sigFile=process.argv[4];const sig=fs.readFileSync(sigFile,'utf8').trim();const data={version,notes:'',pub_date:new Date().toISOString(),url:exeUrl,signature:sig};fs.writeFileSync(out,JSON.stringify(data,null,2)+'\\n');" "$GENERATED_LATEST" "$APP_VERSION" "$EXE_URL" "$SIG_FILE"
-            LATEST_JSON="$GENERATED_LATEST"
-            echo "Generated latest.json at $LATEST_JSON"
-          fi
+          FIXED_EXE_NAME="D-Space-x64-setup.exe"
+          FIXED_SIG_NAME="D-Space-x64-setup.exe.sig"
+          FIXED_EXE_URL="https://${OSS_BUCKET}.oss-${REGION}.aliyuncs.com/d-space/supplier-desktop/windows/${FIXED_EXE_NAME}"
+          APP_VERSION=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('package.json','utf8'));process.stdout.write(c.version)")
+          GENERATED_LATEST="${RUNNER_TEMP}/latest.json"
+          node -e "const fs=require('fs');const out=process.argv[1];const version=process.argv[2];const exeUrl=process.argv[3];const sigFile=process.argv[4];const sig=fs.readFileSync(sigFile,'utf8').trim();const data={version,notes:'',pub_date:new Date().toISOString(),url:exeUrl,signature:sig};fs.writeFileSync(out,JSON.stringify(data,null,2)+'\\n');" "$GENERATED_LATEST" "$APP_VERSION" "$FIXED_EXE_URL" "$SIG_FILE"
+          LATEST_JSON="$GENERATED_LATEST"
+          echo "Generated latest.json at $LATEST_JSON"
 
           DEST="oss://${OSS_BUCKET}/d-space/supplier-desktop/windows"
-          "$OSSUTIL" --region "$REGION" cp "$EXE_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
-          "$OSSUTIL" --region "$REGION" cp "$SIG_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*-setup.exe" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
+          "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*-setup.exe.sig" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
+          "$OSSUTIL" --region "$REGION" cp "$EXE_FILE" "$DEST/$FIXED_EXE_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          "$OSSUTIL" --region "$REGION" cp "$SIG_FILE" "$DEST/$FIXED_SIG_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
           "$OSSUTIL" --region "$REGION" cp "$LATEST_JSON" "$DEST/latest.json" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
