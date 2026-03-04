@@ -26,6 +26,10 @@
             </div>
           </el-form-item>
 
+          <el-form-item class="remember-field">
+            <el-checkbox v-model="rememberAccount">记住账号</el-checkbox>
+          </el-form-item>
+
           <el-button type="primary" class="submit-btn" :loading="loading" @click="handleLogin">登录</el-button>
         </el-form>
       </section>
@@ -50,6 +54,8 @@ const loginRef = ref()
 const captchaUrl = ref('')
 const captchaLoading = ref(false)
 const captchaErrorRetryCount = ref(0)
+const rememberAccount = ref(true)
+const LOGIN_CACHE_KEY = 'supplier-admin-login-cache'
 
 const loginForm = reactive({
   username: '',
@@ -100,6 +106,31 @@ async function refreshCaptcha() {
   }
 }
 
+function loadLoginCache() {
+  try {
+    const raw = localStorage.getItem(LOGIN_CACHE_KEY)
+    if (!raw) return
+    const cached = JSON.parse(raw)
+    loginForm.username = String(cached?.username || '')
+    loginForm.password = String(cached?.password || '')
+    rememberAccount.value = Boolean(cached?.remember)
+  } catch (error) {
+    localStorage.removeItem(LOGIN_CACHE_KEY)
+  }
+}
+
+function persistLoginCache() {
+  if (rememberAccount.value) {
+    localStorage.setItem(LOGIN_CACHE_KEY, JSON.stringify({
+      username: loginForm.username,
+      password: loginForm.password,
+      remember: true,
+    }))
+  } else {
+    localStorage.removeItem(LOGIN_CACHE_KEY)
+  }
+}
+
 function handleLogin() {
   if (!loginRef.value) return
   loginRef.value.validate(async (valid) => {
@@ -107,6 +138,7 @@ function handleLogin() {
     loading.value = true
     try {
       await userStore.login(loginForm)
+      persistLoginCache()
       const redirect = route.query.redirect || '/supplier/delivery/my-purchase-orders'
       router.push(redirect)
     } catch (error) {
@@ -120,6 +152,7 @@ function handleLogin() {
 }
 
 onMounted(() => {
+  loadLoginCache()
   refreshCaptcha()
 })
 
@@ -248,8 +281,17 @@ function handleCaptchaError() {
   border-radius: 9px;
   font-size: 13px;
   font-weight: 600;
-  margin-top:20px;
+  margin-top:15px;
   background: linear-gradient(90deg, #0f4f9c 0%, #053f88 100%);
+}
+
+.remember-field {
+  margin-top: -4px;
+}
+
+.remember-field :deep(.el-checkbox__label) {
+  color: #d8ecff;
+  font-size: 12px;
 }
 
 @media (max-width: 560px) {

@@ -16,6 +16,7 @@ import plugins from "./plugins"
 import SearchBar from "@/components/SearchBar/index.vue"
 import PageTable from "@/components/PageTable/index.vue"
 import { checkForAppUpdateWithPrompt } from "./updater"
+import { ensureAutoStartEnabled } from "./autostart"
 
 import "./permission"
 
@@ -41,5 +42,6 @@ app.mount("#app")
 
 router.isReady().then(() => {
   document.body.classList.add("loaded")
+  ensureAutoStartEnabled()
   checkForAppUpdateWithPrompt()
 })

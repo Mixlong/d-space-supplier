@@ -1,6 +1,6 @@
 {
   "name": "supplier-admin",
-  "version": "1.0.2",
+  "version": "1.0.0",
   "description": "供应商管理后台",
   "author": "Digiwise",
   "license": "MIT",
@@ -25,6 +25,9 @@
   "dependencies": {
     "@element-plus/icons-vue": "2.3.1",
     "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-autostart": "^2.5.1",
+    "@tauri-apps/plugin-opener": "^2.5.3",
+    "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.9.0",
     "@vueuse/core": "13.3.0",
     "axios": "1.9.0",
