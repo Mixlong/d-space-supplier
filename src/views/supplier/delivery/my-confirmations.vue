@@ -193,7 +193,10 @@ function buildQuery() {
   return params;
 }
 
-function getList() {
+function getList(refreshMetrics = false) {
+  if (refreshMetrics === true) {
+    getMetrics();
+  }
   loading.value = true;
   getMyConfirmations(buildQuery())
     .then((res) => {
@@ -218,19 +221,18 @@ function getList() {
 
 function handleQuery() {
   queryParams.p = 1;
-  getList();
+  getList(true);
 }
 
 function resetQuery() {
   Object.assign(queryParams, defaultQuery);
   dateRange.value = [];
-  getList();
+  getList(true);
 }
 
 
 onMounted(() => {
-  getList();
-  getMetrics();
+  getList(true);
 });
 </script>
 

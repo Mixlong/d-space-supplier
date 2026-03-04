@@ -164,8 +164,14 @@ function handleCaptchaError() {
 .login-panel {
   --field-height: 32px;
   --field-width: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
   width: 410px;
-  max-width: calc(100vw - 36px);
+  height: 457.66px;
   padding: 30px 80px 26px;
   border-radius: 20px;
   background: linear-gradient(145deg, rgba(171, 214, 255, 0.24), rgba(103, 173, 255, 0.14));
@@ -198,6 +204,7 @@ function handleCaptchaError() {
 
 .login-form {
   width: var(--field-width);
+  margin: 0 auto;
 }
 
 .login-form :deep(.el-form-item) {
@@ -245,24 +252,11 @@ function handleCaptchaError() {
   background: linear-gradient(90deg, #0f4f9c 0%, #053f88 100%);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 560px) {
   .panel-wrap {
     justify-content: center;
     padding: 0;
   }
-
-  .login-panel {
-    width: calc(100vw - 30px);
-    padding: 24px 20px 20px;
-    --field-width: min(250px, calc(100vw - 70px));
-  }
-
-  .brand-logo {
-    width: 64px;
-    height: 64px;
-  
-  }
-
   .title {
     font-size: 30px;
   }
