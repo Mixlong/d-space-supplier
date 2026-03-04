@@ -126,6 +126,8 @@ jobs:
           test -n "$DMG_FILE"
           DESTS=("oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin")
           for DEST in "${DESTS[@]}"; do
+            # Cleanup legacy app-bundle directory from previous recursive uploads.
+            "$OSSUTIL" --region "$REGION" rm "$DEST/Contents" --recursive -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
             "$OSSUTIL" --region "$REGION" cp "$DMG_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
             if [ -n "$TAR_FILE" ] && [ -n "$SIG_FILE" ] && [ -n "$LATEST_JSON" ]; then
               "$OSSUTIL" --region "$REGION" cp "$TAR_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
