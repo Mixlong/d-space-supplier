@@ -105,15 +105,21 @@ jobs:
           LATEST_JSON="$GENERATED_LATEST"
           echo "Generated latest.json at $LATEST_JSON"
 
-          DEST="oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin"
-          "$OSSUTIL" --region "$REGION" rm "$DEST/Contents" --recursive -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
-          "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*.dmg" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
-          "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*.tar.gz" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
-          "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*.tar.gz.sig" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
-          "$OSSUTIL" --region "$REGION" cp "$DMG_FILE" "$DEST/$FIXED_DMG_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
-          "$OSSUTIL" --region "$REGION" cp "$TAR_FILE" "$DEST/$FIXED_TAR_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
-          "$OSSUTIL" --region "$REGION" cp "$SIG_FILE" "$DEST/$FIXED_SIG_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
-          "$OSSUTIL" --region "$REGION" cp "$LATEST_JSON" "$DEST/latest.json" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          DESTS=(
+            "oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin"
+            "oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin-aarch64"
+            "oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin-x86_64"
+          )
+          for DEST in "${DESTS[@]}"; do
+            "$OSSUTIL" --region "$REGION" rm "$DEST/Contents" --recursive -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
+            "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*.dmg" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
+            "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*.tar.gz" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
+            "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*.tar.gz.sig" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
+            "$OSSUTIL" --region "$REGION" cp "$DMG_FILE" "$DEST/$FIXED_DMG_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+            "$OSSUTIL" --region "$REGION" cp "$TAR_FILE" "$DEST/$FIXED_TAR_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+            "$OSSUTIL" --region "$REGION" cp "$SIG_FILE" "$DEST/$FIXED_SIG_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+            "$OSSUTIL" --region "$REGION" cp "$LATEST_JSON" "$DEST/latest.json" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          done
 
   publish-windows:
     if: ${{ inputs.platform == 'windows' || inputs.platform == 'both' }}
@@ -196,9 +202,15 @@ jobs:
           LATEST_JSON="$GENERATED_LATEST"
           echo "Generated latest.json at $LATEST_JSON"
 
-          DEST="oss://${OSS_BUCKET}/d-space/supplier-desktop/windows"
-          "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*-setup.exe" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
-          "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*-setup.exe.sig" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
-          "$OSSUTIL" --region "$REGION" cp "$EXE_FILE" "$DEST/$FIXED_EXE_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
-          "$OSSUTIL" --region "$REGION" cp "$SIG_FILE" "$DEST/$FIXED_SIG_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
-          "$OSSUTIL" --region "$REGION" cp "$LATEST_JSON" "$DEST/latest.json" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          DESTS=(
+            "oss://${OSS_BUCKET}/d-space/supplier-desktop/windows"
+            "oss://${OSS_BUCKET}/d-space/supplier-desktop/windows-x86_64"
+            "oss://${OSS_BUCKET}/d-space/supplier-desktop/windows-x86_64-msvc"
+          )
+          for DEST in "${DESTS[@]}"; do
+            "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*-setup.exe" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
+            "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*-setup.exe.sig" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
+            "$OSSUTIL" --region "$REGION" cp "$EXE_FILE" "$DEST/$FIXED_EXE_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+            "$OSSUTIL" --region "$REGION" cp "$SIG_FILE" "$DEST/$FIXED_SIG_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+            "$OSSUTIL" --region "$REGION" cp "$LATEST_JSON" "$DEST/latest.json" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          done

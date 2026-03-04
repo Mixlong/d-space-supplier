@@ -140,7 +140,11 @@ jobs:
           node -e "const fs=require('fs');const out=process.argv[1];const version=process.argv[2];const tarUrl=process.argv[3];const sigFile=process.argv[4];const sig=fs.readFileSync(sigFile,'utf8').trim();const data={version,notes:'',pub_date:new Date().toISOString(),url:tarUrl,signature:sig};fs.writeFileSync(out,JSON.stringify(data,null,2)+'\\n');" "$GENERATED_LATEST" "$APP_VERSION" "$FIXED_TAR_URL" "$SIG_FILE"
           LATEST_JSON="$GENERATED_LATEST"
           echo "Generated latest.json at $LATEST_JSON"
-          DESTS=("oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin")
+          DESTS=(
+            "oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin"
+            "oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin-aarch64"
+            "oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin-x86_64"
+          )
           for DEST in "${DESTS[@]}"; do
             # Cleanup legacy app-bundle directory from previous recursive uploads.
             "$OSSUTIL" --region "$REGION" rm "$DEST/Contents" --recursive -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
