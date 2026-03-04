@@ -1,0 +1,1 @@
+import{_ as c,c as e,o}from"./index-DByZrn1D.js";const s={},t={class:"p"};function _(a,n){return o(),e("div",t,"401 无权限访问")}const d=c(s,[["render",_],["__scopeId","data-v-33b44435"]]);export{d as default};
