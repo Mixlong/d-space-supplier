@@ -1,0 +1,194 @@
+name: Publish OSS From Artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Which platform artifacts to publish"
+        required: true
+        default: both
+        type: choice
+        options:
+          - macos
+          - windows
+          - both
+      macos_run_id:
+        description: "Run ID of macOS Tauri Build (artifact: macos-app-dmg)"
+        required: false
+        type: string
+      windows_run_id:
+        description: "Run ID of Windows Tauri Build (artifact: windows-nsis)"
+        required: false
+        type: string
+
+jobs:
+  publish-macos:
+    if: ${{ inputs.platform == 'macos' || inputs.platform == 'both' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Validate macOS run id
+        shell: bash
+        run: |
+          if [ -z "${{ inputs.macos_run_id }}" ]; then
+            echo "::error::macos_run_id is required when platform is macos/both."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download macOS build artifact
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.macos_run_id }}
+          name: macos-app-dmg
+          path: artifacts/macos
+
+      - name: Install ossutil
+        shell: bash
+        run: |
+          set -euo pipefail
+          OSSUTIL_VERSION="2.2.1"
+          PKG="ossutil-${OSSUTIL_VERSION}-linux-amd64.zip"
+          curl -fsSL -o "$PKG" "https://gosspublic.alicdn.com/ossutil/v2/${OSSUTIL_VERSION}/${PKG}"
+          unzip -o "$PKG" -d .
+          OSSUTIL_BIN="$(find . -type f -path "*/ossutil" | head -n 1)"
+          test -n "$OSSUTIL_BIN"
+          chmod +x "$OSSUTIL_BIN"
+          echo "OSSUTIL_BIN=$OSSUTIL_BIN" >> "$GITHUB_ENV"
+
+      - name: Publish macOS artifact to OSS
+        shell: bash
+        env:
+          OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+          OSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
+          OSS_REGION: ${{ secrets.OSS_REGION }}
+          OSS_BUCKET: ${{ secrets.OSS_BUCKET }}
+        run: |
+          set -euo pipefail
+          test -n "${OSS_ACCESS_KEY_ID:-}" && test -n "${OSS_ACCESS_KEY_SECRET:-}" && test -n "${OSS_ENDPOINT:-}" && test -n "${OSS_BUCKET:-}"
+
+          REGION="${OSS_REGION:-}"
+          if [ -z "$REGION" ]; then
+            REGION="$(printf '%s' "$OSS_ENDPOINT" | sed -E 's#^https?://##; s#/.*$##' | sed -nE 's#^oss-([a-z0-9-]+)(-internal)?\.aliyuncs\.com$#\1#p')"
+          fi
+          if [ -z "$REGION" ]; then
+            REGION="cn-shenzhen"
+          fi
+          echo "Using OSS region: $REGION"
+
+          OSSUTIL="${OSSUTIL_BIN:-$(find . -type f -path "*/ossutil" | head -n 1)}"
+          test -n "$OSSUTIL"
+
+          BUNDLE_DIR="artifacts/macos"
+          DMG_FILE=$(find "$BUNDLE_DIR" -type f -name '*.dmg' | head -n 1 || true)
+          TAR_FILE=$(find "$BUNDLE_DIR" -type f -name '*.tar.gz' | head -n 1 || true)
+          SIG_FILE=$(find "$BUNDLE_DIR" -type f -name '*.sig' | head -n 1 || true)
+          LATEST_JSON=$(find "$BUNDLE_DIR" -type f -name 'latest.json' | head -n 1 || true)
+          if [ -z "$DMG_FILE" ] || [ -z "$TAR_FILE" ] || [ -z "$SIG_FILE" ]; then
+            echo "::error::macOS artifact missing required files (.dmg/.tar.gz/.sig)."
+            find "$BUNDLE_DIR" -type f | sed -n '1,200p'
+            exit 1
+          fi
+          if [ -z "$LATEST_JSON" ]; then
+            APP_VERSION="$(basename "$DMG_FILE" | sed -nE 's#.*_([0-9]+\\.[0-9]+\\.[0-9]+([-.][0-9A-Za-z.]+)?)_.*\\.dmg$#\\1#p')"
+            if [ -z "$APP_VERSION" ]; then
+              APP_VERSION=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));process.stdout.write(c.version)")
+            fi
+            UPDATE_ENDPOINT=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));process.stdout.write((c.plugins&&c.plugins.updater&&c.plugins.updater.endpoints&&c.plugins.updater.endpoints[0])||'')")
+            BASE_URL=$(printf '%s' "$UPDATE_ENDPOINT" | sed 's#{{target}}/latest\.json$#darwin#')
+            TAR_URL="${BASE_URL}/$(basename "$TAR_FILE")"
+            GENERATED_LATEST="${RUNNER_TEMP}/latest.json"
+            node -e "const fs=require('fs');const out=process.argv[1];const version=process.argv[2];const tarUrl=process.argv[3];const sigFile=process.argv[4];const sig=fs.readFileSync(sigFile,'utf8').trim();const data={version,notes:'',pub_date:new Date().toISOString(),url:tarUrl,signature:sig};fs.writeFileSync(out,JSON.stringify(data,null,2)+'\\n');" "$GENERATED_LATEST" "$APP_VERSION" "$TAR_URL" "$SIG_FILE"
+            LATEST_JSON="$GENERATED_LATEST"
+            echo "Generated latest.json at $LATEST_JSON"
+          fi
+
+          DEST="oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin"
+          FIXED_DMG_NAME="D-Space（供应商管理）.dmg"
+          "$OSSUTIL" --region "$REGION" rm "$DEST/Contents" --recursive -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
+          "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*.dmg" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
+          "$OSSUTIL" --region "$REGION" cp "$DMG_FILE" "$DEST/$FIXED_DMG_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          "$OSSUTIL" --region "$REGION" cp "$TAR_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          "$OSSUTIL" --region "$REGION" cp "$SIG_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          "$OSSUTIL" --region "$REGION" cp "$LATEST_JSON" "$DEST/latest.json" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+
+  publish-windows:
+    if: ${{ inputs.platform == 'windows' || inputs.platform == 'both' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Validate Windows run id
+        shell: bash
+        run: |
+          if [ -z "${{ inputs.windows_run_id }}" ]; then
+            echo "::error::windows_run_id is required when platform is windows/both."
+            exit 1
+          fi
+
+      - name: Download Windows build artifact
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.windows_run_id }}
+          name: windows-nsis
+          path: artifacts/windows
+
+      - name: Install ossutil
+        shell: bash
+        run: |
+          set -euo pipefail
+          OSSUTIL_VERSION="2.2.1"
+          PKG="ossutil-${OSSUTIL_VERSION}-linux-amd64.zip"
+          curl -fsSL -o "$PKG" "https://gosspublic.alicdn.com/ossutil/v2/${OSSUTIL_VERSION}/${PKG}"
+          unzip -o "$PKG" -d .
+          OSSUTIL_BIN="$(find . -type f -path "*/ossutil" | head -n 1)"
+          test -n "$OSSUTIL_BIN"
+          chmod +x "$OSSUTIL_BIN"
+          echo "OSSUTIL_BIN=$OSSUTIL_BIN" >> "$GITHUB_ENV"
+
+      - name: Publish Windows artifact to OSS
+        shell: bash
+        env:
+          OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+          OSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
+          OSS_REGION: ${{ secrets.OSS_REGION }}
+          OSS_BUCKET: ${{ secrets.OSS_BUCKET }}
+        run: |
+          set -euo pipefail
+          test -n "${OSS_ACCESS_KEY_ID:-}" && test -n "${OSS_ACCESS_KEY_SECRET:-}" && test -n "${OSS_ENDPOINT:-}" && test -n "${OSS_BUCKET:-}"
+
+          REGION="${OSS_REGION:-}"
+          if [ -z "$REGION" ]; then
+            REGION="$(printf '%s' "$OSS_ENDPOINT" | sed -E 's#^https?://##; s#/.*$##' | sed -nE 's#^oss-([a-z0-9-]+)(-internal)?\.aliyuncs\.com$#\1#p')"
+          fi
+          if [ -z "$REGION" ]; then
+            REGION="cn-shenzhen"
+          fi
+          echo "Using OSS region: $REGION"
+
+          OSSUTIL="${OSSUTIL_BIN:-$(find . -type f -path "*/ossutil" | head -n 1)}"
+          test -n "$OSSUTIL"
+
+          BUNDLE_DIR="artifacts/windows"
+          EXE_FILE=$(find "$BUNDLE_DIR" -type f -name '*.exe' | head -n 1 || true)
+          SIG_FILE=$(find "$BUNDLE_DIR" -type f -name '*.sig' | head -n 1 || true)
+          LATEST_JSON=$(find "$BUNDLE_DIR" -type f -name 'latest.json' | head -n 1 || true)
+          if [ -z "$EXE_FILE" ] || [ -z "$SIG_FILE" ] || [ -z "$LATEST_JSON" ]; then
+            echo "::error::Windows artifact missing required files (.exe/.sig/latest.json)."
+            find "$BUNDLE_DIR" -type f | sed -n '1,200p'
+            exit 1
+          fi
+
+          DEST="oss://${OSS_BUCKET}/d-space/supplier-desktop/windows"
+          "$OSSUTIL" --region "$REGION" cp "$EXE_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          "$OSSUTIL" --region "$REGION" cp "$SIG_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+          "$OSSUTIL" --region "$REGION" cp "$LATEST_JSON" "$DEST/latest.json" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
