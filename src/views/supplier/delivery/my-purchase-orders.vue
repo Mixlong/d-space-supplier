@@ -129,7 +129,7 @@
                             >回复日期</el-button
                         >
                         <el-button
-                            v-else
+                            v-else-if="canSubmitDelivery(row)"
                             link
                             type="primary"
                             @click="openSubmitDialog(row)"
@@ -363,6 +363,10 @@ function resetQuery() {
 }
 
 function openSubmitDialog(row) {
+    if (!canSubmitDelivery(row)) {
+        ElMessage.warning("当前状态不可提交交付");
+        return;
+    }
     // 检查是否已填写回复日期
     if (!row.vendorReplyDate) {
         ElMessage.warning("请先回复日期后再提交交付");
@@ -417,6 +421,10 @@ function handleSubmit() {
                 submitLoading.value = false;
             });
     });
+}
+
+function canSubmitDelivery(row) {
+    return row?.deliveryStatus !== "已完成";
 }
 
 onMounted(() => {
