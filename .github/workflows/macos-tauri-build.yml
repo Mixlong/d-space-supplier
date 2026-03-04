@@ -132,20 +132,24 @@ jobs:
             exit 1
           fi
           FIXED_DMG_NAME="D-Space.dmg"
-          FIXED_DMG_URL="https://${OSS_BUCKET}.oss-${REGION}.aliyuncs.com/d-space/supplier-desktop/darwin/${FIXED_DMG_NAME}"
+          FIXED_TAR_NAME="D-Space.tar.gz"
+          FIXED_SIG_NAME="D-Space.tar.gz.sig"
+          FIXED_TAR_URL="https://${OSS_BUCKET}.oss-${REGION}.aliyuncs.com/d-space/supplier-desktop/darwin/${FIXED_TAR_NAME}"
           APP_VERSION=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('package.json','utf8'));process.stdout.write(c.version)")
           GENERATED_LATEST="${RUNNER_TEMP}/latest.json"
-          node -e "const fs=require('fs');const out=process.argv[1];const version=process.argv[2];const dmgUrl=process.argv[3];const sigFile=process.argv[4];const sig=fs.readFileSync(sigFile,'utf8').trim();const data={version,notes:'',pub_date:new Date().toISOString(),url:dmgUrl,signature:sig};fs.writeFileSync(out,JSON.stringify(data,null,2)+'\\n');" "$GENERATED_LATEST" "$APP_VERSION" "$FIXED_DMG_URL" "$SIG_FILE"
+          node -e "const fs=require('fs');const out=process.argv[1];const version=process.argv[2];const tarUrl=process.argv[3];const sigFile=process.argv[4];const sig=fs.readFileSync(sigFile,'utf8').trim();const data={version,notes:'',pub_date:new Date().toISOString(),url:tarUrl,signature:sig};fs.writeFileSync(out,JSON.stringify(data,null,2)+'\\n');" "$GENERATED_LATEST" "$APP_VERSION" "$FIXED_TAR_URL" "$SIG_FILE"
           LATEST_JSON="$GENERATED_LATEST"
           echo "Generated latest.json at $LATEST_JSON"
           DESTS=("oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin")
           for DEST in "${DESTS[@]}"; do
             # Cleanup legacy app-bundle directory from previous recursive uploads.
             "$OSSUTIL" --region "$REGION" rm "$DEST/Contents" --recursive -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
-            # Keep only one dmg object to avoid accumulating versioned installers.
+            # Keep only fixed aliases for dmg/tar/sig.
             "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*.dmg" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
+            "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*.tar.gz" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
+            "$OSSUTIL" --region "$REGION" rm "$DEST/" --recursive --include "*.tar.gz.sig" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u || true
             "$OSSUTIL" --region "$REGION" cp "$DMG_FILE" "$DEST/$FIXED_DMG_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
-            "$OSSUTIL" --region "$REGION" cp "$TAR_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
-            "$OSSUTIL" --region "$REGION" cp "$SIG_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+            "$OSSUTIL" --region "$REGION" cp "$TAR_FILE" "$DEST/$FIXED_TAR_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+            "$OSSUTIL" --region "$REGION" cp "$SIG_FILE" "$DEST/$FIXED_SIG_NAME" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
             "$OSSUTIL" --region "$REGION" cp "$LATEST_JSON" "$DEST/latest.json" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
           done
