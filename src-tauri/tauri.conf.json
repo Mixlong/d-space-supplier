@@ -44,7 +44,7 @@
       "active": true,
       "dialog": true,
       "endpoints": [
-        "https://bikewise.oss-cn-shenzhen.aliyuncs.com/d-space/supplier-desktop/latest.json"
+        "https://bikewise.oss-cn-shenzhen.aliyuncs.com/d-space/supplier-desktop/{{target}}/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI1QzM2NEMzMjE4NUMwMjQKUldRa3dJVWh3MlREdFNMT3MveTlodnZYemd4N3JhUHoyaE11aWUwZnlVU3NmTEZuSVVYczVBRUYK"
     }

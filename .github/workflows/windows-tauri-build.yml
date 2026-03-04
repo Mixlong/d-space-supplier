@@ -100,7 +100,7 @@ jobs:
           $sig = Get-ChildItem -Path $bundleDir -Filter *.sig | Select-Object -First 1
           $latest = Get-ChildItem -Path $bundleDir -Filter latest.json -Recurse | Select-Object -First 1
           if (-not $exe) { throw "Missing required artifact: exe" }
-          $dest = "oss://$($env:OSS_BUCKET)/d-space/supplier-desktop"
+          $dest = "oss://$($env:OSS_BUCKET)/d-space/supplier-desktop/windows"
           & $ossutil cp $exe.FullName "$dest/" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
           if ($sig) {
             & $ossutil cp $sig.FullName "$dest/" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
