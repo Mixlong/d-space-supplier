@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use tauri::{
+  image::Image,
   menu::{Menu, MenuItem},
   tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
   Manager, WindowEvent,
@@ -14,6 +15,23 @@ fn restart_app(app: tauri::AppHandle) {
 #[derive(Default)]
 struct AppState {
   is_quitting: AtomicBool,
+}
+
+fn get_tray_icon() -> Option<Image<'static>> {
+  #[cfg(target_os = "macos")]
+  {
+    return Image::from_bytes(include_bytes!("../icons/tray-mac-18.png")).ok();
+  }
+
+  #[cfg(target_os = "windows")]
+  {
+    return Image::from_bytes(include_bytes!("../icons/tray-win-16.png")).ok();
+  }
+
+  #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+  {
+    None
+  }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -43,7 +61,7 @@ pub fn run() {
       let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
       let tray_menu = Menu::with_items(app, &[&show_item, &quit_item])?;
       let app_handle = app.handle().clone();
-      TrayIconBuilder::with_id("main-tray")
+      let mut tray_builder = TrayIconBuilder::with_id("main-tray")
         .menu(&tray_menu)
         .show_menu_on_left_click(false)
         .on_menu_event(move |app, event| match event.id().as_ref() {
@@ -71,8 +89,13 @@ pub fn run() {
               let _ = window.set_focus();
             }
           }
-        })
-        .build(app)?;
+        });
+
+      if let Some(icon) = get_tray_icon().or_else(|| app.default_window_icon().cloned()) {
+        tray_builder = tray_builder.icon(icon);
+      }
+
+      tray_builder.build(app)?;
 
       if cfg!(debug_assertions) {
         app.handle().plugin(
