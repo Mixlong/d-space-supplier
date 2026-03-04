@@ -131,17 +131,13 @@ jobs:
             find "$BUNDLE_DIR" -type f | sed -n '1,200p'
             exit 1
           fi
-          if [ -z "$LATEST_JSON" ]; then
-            APP_VERSION=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('package.json','utf8'));process.stdout.write(c.version)")
-            UPDATE_ENDPOINT=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));process.stdout.write((c.plugins&&c.plugins.updater&&c.plugins.updater.endpoints&&c.plugins.updater.endpoints[0])||'')")
-            BASE_URL=$(printf '%s' "$UPDATE_ENDPOINT" | sed 's#{{target}}/latest\.json$#darwin#')
-            TAR_URL="${BASE_URL}/$(basename "$TAR_FILE")"
-            GENERATED_LATEST="${RUNNER_TEMP}/latest.json"
-            node -e "const fs=require('fs');const out=process.argv[1];const version=process.argv[2];const tarUrl=process.argv[3];const sigFile=process.argv[4];const sig=fs.readFileSync(sigFile,'utf8').trim();const data={version,notes:'',pub_date:new Date().toISOString(),url:tarUrl,signature:sig};fs.writeFileSync(out,JSON.stringify(data,null,2)+'\\n');" "$GENERATED_LATEST" "$APP_VERSION" "$TAR_URL" "$SIG_FILE"
-            LATEST_JSON="$GENERATED_LATEST"
-            echo "Generated latest.json at $LATEST_JSON"
-          fi
-          FIXED_DMG_NAME="D-Space（供应商管理）.dmg"
+          FIXED_DMG_NAME="D-Space.dmg"
+          FIXED_DMG_URL="https://${OSS_BUCKET}.oss-${REGION}.aliyuncs.com/d-space/supplier-desktop/darwin/${FIXED_DMG_NAME}"
+          APP_VERSION=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('package.json','utf8'));process.stdout.write(c.version)")
+          GENERATED_LATEST="${RUNNER_TEMP}/latest.json"
+          node -e "const fs=require('fs');const out=process.argv[1];const version=process.argv[2];const dmgUrl=process.argv[3];const sigFile=process.argv[4];const sig=fs.readFileSync(sigFile,'utf8').trim();const data={version,notes:'',pub_date:new Date().toISOString(),url:dmgUrl,signature:sig};fs.writeFileSync(out,JSON.stringify(data,null,2)+'\\n');" "$GENERATED_LATEST" "$APP_VERSION" "$FIXED_DMG_URL" "$SIG_FILE"
+          LATEST_JSON="$GENERATED_LATEST"
+          echo "Generated latest.json at $LATEST_JSON"
           DESTS=("oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin")
           for DEST in "${DESTS[@]}"; do
             # Cleanup legacy app-bundle directory from previous recursive uploads.
