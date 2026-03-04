@@ -98,7 +98,7 @@ jobs:
           if [ -z "$LATEST_JSON" ]; then
             APP_VERSION="$(basename "$DMG_FILE" | sed -nE 's#.*_([0-9]+\\.[0-9]+\\.[0-9]+([-.][0-9A-Za-z.]+)?)_.*\\.dmg$#\\1#p')"
             if [ -z "$APP_VERSION" ]; then
-              APP_VERSION=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));process.stdout.write(c.version)")
+              APP_VERSION=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('package.json','utf8'));process.stdout.write(c.version)")
             fi
             UPDATE_ENDPOINT=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));process.stdout.write((c.plugins&&c.plugins.updater&&c.plugins.updater.endpoints&&c.plugins.updater.endpoints[0])||'')")
             BASE_URL=$(printf '%s' "$UPDATE_ENDPOINT" | sed 's#{{target}}/latest\.json$#darwin#')
@@ -132,6 +132,9 @@ jobs:
             echo "::error::windows_run_id is required when platform is windows/both."
             exit 1
           fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Download Windows build artifact
         uses: actions/download-artifact@v4
@@ -182,10 +185,23 @@ jobs:
           EXE_FILE=$(find "$BUNDLE_DIR" -type f -name '*.exe' | head -n 1 || true)
           SIG_FILE=$(find "$BUNDLE_DIR" -type f -name '*.sig' | head -n 1 || true)
           LATEST_JSON=$(find "$BUNDLE_DIR" -type f -name 'latest.json' | head -n 1 || true)
-          if [ -z "$EXE_FILE" ] || [ -z "$SIG_FILE" ] || [ -z "$LATEST_JSON" ]; then
-            echo "::error::Windows artifact missing required files (.exe/.sig/latest.json)."
+          if [ -z "$EXE_FILE" ] || [ -z "$SIG_FILE" ]; then
+            echo "::error::Windows artifact missing required files (.exe/.sig)."
             find "$BUNDLE_DIR" -type f | sed -n '1,200p'
             exit 1
+          fi
+          if [ -z "$LATEST_JSON" ]; then
+            APP_VERSION="$(basename "$EXE_FILE" | sed -nE 's#.*_([0-9]+\\.[0-9]+\\.[0-9]+([-.][0-9A-Za-z.]+)?)_.*\\.exe$#\\1#p')"
+            if [ -z "$APP_VERSION" ]; then
+              APP_VERSION=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('package.json','utf8'));process.stdout.write(c.version)")
+            fi
+            UPDATE_ENDPOINT=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));process.stdout.write((c.plugins&&c.plugins.updater&&c.plugins.updater.endpoints&&c.plugins.updater.endpoints[0])||'')")
+            BASE_URL=$(printf '%s' "$UPDATE_ENDPOINT" | sed 's#{{target}}/latest\.json$#windows#')
+            EXE_URL="${BASE_URL}/$(basename "$EXE_FILE")"
+            GENERATED_LATEST="${RUNNER_TEMP}/latest.json"
+            node -e "const fs=require('fs');const out=process.argv[1];const version=process.argv[2];const exeUrl=process.argv[3];const sigFile=process.argv[4];const sig=fs.readFileSync(sigFile,'utf8').trim();const data={version,notes:'',pub_date:new Date().toISOString(),url:exeUrl,signature:sig};fs.writeFileSync(out,JSON.stringify(data,null,2)+'\\n');" "$GENERATED_LATEST" "$APP_VERSION" "$EXE_URL" "$SIG_FILE"
+            LATEST_JSON="$GENERATED_LATEST"
+            echo "Generated latest.json at $LATEST_JSON"
           fi
 
           DEST="oss://${OSS_BUCKET}/d-space/supplier-desktop/windows"

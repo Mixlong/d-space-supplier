@@ -110,6 +110,26 @@ jobs:
           $sig = Get-ChildItem -Path $bundleDir -Filter *.sig | Select-Object -First 1
           $latest = Get-ChildItem -Path $bundleDir -Filter latest.json -Recurse | Select-Object -First 1
           if (-not $exe) { throw "Missing required artifact: exe" }
+          if (-not $latest -and $sig) {
+            $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+            $version = $pkg.version
+            $tauri = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
+            $endpoint = $tauri.plugins.updater.endpoints[0]
+            $baseUrl = $endpoint -replace '\{\{target\}\}/latest\.json$','windows'
+            $exeUrl = "$baseUrl/$($exe.Name)"
+            $signature = (Get-Content $sig.FullName -Raw).Trim()
+            $latestObj = @{
+              version = $version
+              notes = ""
+              pub_date = (Get-Date).ToUniversalTime().ToString("o")
+              url = $exeUrl
+              signature = $signature
+            }
+            $generatedLatest = Join-Path $env:RUNNER_TEMP "latest.json"
+            $latestObj | ConvertTo-Json -Depth 5 | Out-File -FilePath $generatedLatest -Encoding utf8
+            $latest = Get-Item $generatedLatest
+            Write-Host "Generated latest.json at $generatedLatest"
+          }
           $dest = "oss://$($env:OSS_BUCKET)/d-space/supplier-desktop/windows"
           & $ossutil --region $region cp $exe.FullName "$dest/" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
           if ($sig) {

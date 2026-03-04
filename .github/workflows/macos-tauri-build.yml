@@ -132,7 +132,7 @@ jobs:
             exit 1
           fi
           if [ -z "$LATEST_JSON" ]; then
-            APP_VERSION=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));process.stdout.write(c.version)")
+            APP_VERSION=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('package.json','utf8'));process.stdout.write(c.version)")
             UPDATE_ENDPOINT=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));process.stdout.write((c.plugins&&c.plugins.updater&&c.plugins.updater.endpoints&&c.plugins.updater.endpoints[0])||'')")
             BASE_URL=$(printf '%s' "$UPDATE_ENDPOINT" | sed 's#{{target}}/latest\.json$#darwin#')
             TAR_URL="${BASE_URL}/$(basename "$TAR_FILE")"

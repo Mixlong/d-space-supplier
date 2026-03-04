@@ -8,13 +8,17 @@
   "scripts": {
     "dev": "pnpm dev:web",
     "dev:web": "vite --port 3003 --strictPort",
+    "predev:desktop": "pnpm sync:tauri-version",
     "dev:desktop": "tauri dev",
     "build:prod": "vite build",
     "build:stage": "vite build --mode staging",
+    "prebuild:desktop": "pnpm sync:tauri-version",
     "build:desktop": "tauri build",
     "release:oss": "bash scripts/release-oss.sh",
     "preview": "vite preview",
+    "pretauri": "pnpm sync:tauri-version",
     "tauri": "tauri",
+    "sync:tauri-version": "node scripts/sync-tauri-version.cjs",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix",
     "format": "prettier --write \"src/**/*.{js,vue,json,css,scss}\""
   },
