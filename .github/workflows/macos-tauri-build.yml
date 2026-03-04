@@ -124,7 +124,7 @@ jobs:
           SIG_FILE=$(find "$BUNDLE_DIR" -type f -name '*.sig' | head -n 1 || true)
           LATEST_JSON=$(find "$BUNDLE_DIR" -type f -name 'latest.json' | head -n 1 || true)
           test -n "$DMG_FILE"
-          DESTS=("oss://${OSS_BUCKET}/d-space/supplier-desktop/macos" "oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin")
+          DESTS=("oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin")
           for DEST in "${DESTS[@]}"; do
             "$OSSUTIL" --region "$REGION" cp "$DMG_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
             if [ -n "$TAR_FILE" ] && [ -n "$SIG_FILE" ] && [ -n "$LATEST_JSON" ]; then
