@@ -108,41 +108,29 @@ jobs:
           $bundleDir = "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis"
           $exe = Get-ChildItem -Path $bundleDir -Filter *.exe | Select-Object -First 1
           $sig = Get-ChildItem -Path $bundleDir -Filter *.sig | Select-Object -First 1
-          $latest = Get-ChildItem -Path $bundleDir -Filter latest.json -Recurse | Select-Object -First 1
           if (-not $exe) { throw "Missing required artifact: exe" }
+          if (-not $sig) { throw "Missing required artifact: sig" }
           $dest = "oss://$($env:OSS_BUCKET)/d-space/supplier-desktop/windows"
-          $fixedExeName = "D-Spacex64-setup.exe"
-          $fixedSigName = "D-Spacex64-setup.exe.sig"
+          $fixedExeName = "D-Space-x64-setup.exe"
+          $fixedSigName = "D-Space-x64-setup.exe.sig"
           $fixedExeUrl = "https://$($env:OSS_BUCKET).oss-$region.aliyuncs.com/d-space/supplier-desktop/windows/$fixedExeName"
-          if ($sig) {
-            $pkg = Get-Content package.json -Raw | ConvertFrom-Json
-            $version = $pkg.version
-            $signature = (Get-Content $sig.FullName -Raw).Trim()
-            $latestObj = @{
-              version = $version
-              notes = ""
-              pub_date = (Get-Date).ToUniversalTime().ToString("o")
-              url = $fixedExeUrl
-              signature = $signature
-            }
-            $generatedLatest = Join-Path $env:RUNNER_TEMP "latest.json"
-            $latestObj | ConvertTo-Json -Depth 5 | Out-File -FilePath $generatedLatest -Encoding utf8
-            $latest = Get-Item $generatedLatest
-            Write-Host "Generated latest.json at $generatedLatest"
-          } elseif (-not $latest) {
-            Write-Warning "No .sig and no latest.json found. Skip uploading updater manifest."
+          $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+          $version = $pkg.version
+          $signature = (Get-Content $sig.FullName -Raw).Trim()
+          $latestObj = @{
+            version = $version
+            notes = ""
+            pub_date = (Get-Date).ToUniversalTime().ToString("o")
+            url = $fixedExeUrl
+            signature = $signature
           }
+          $generatedLatest = Join-Path $env:RUNNER_TEMP "latest.json"
+          $latestObj | ConvertTo-Json -Depth 5 | Out-File -FilePath $generatedLatest -Encoding utf8
+          $latest = Get-Item $generatedLatest
+          Write-Host "Generated latest.json at $generatedLatest"
           # Cleanup old versioned installers/signatures to keep OSS file list clean.
           & $ossutil --region $region rm "$dest/" --recursive --include "*-setup.exe" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
           & $ossutil --region $region rm "$dest/" --recursive --include "*-setup.exe.sig" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
           & $ossutil --region $region cp $exe.FullName "$dest/$fixedExeName" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
-          if ($sig) {
-            & $ossutil --region $region cp $sig.FullName "$dest/$fixedSigName" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
-          } else {
-            Write-Warning "No .sig file found under $bundleDir, skip uploading signature."
-          }
-          if ($latest) {
-            & $ossutil --region $region cp $latest.FullName "$dest/latest.json" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
-          } else {
-            Write-Warning "No latest.json found under $bundleDir, skip uploading updater manifest."
-          }
+          & $ossutil --region $region cp $sig.FullName "$dest/$fixedSigName" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
+          & $ossutil --region $region cp $latest.FullName "$dest/latest.json" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
