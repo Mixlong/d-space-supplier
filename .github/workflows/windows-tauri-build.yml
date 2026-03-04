@@ -102,7 +102,8 @@ jobs:
               $region = $Matches[1]
             }
           }
-          if (-not $region) { throw "Missing OSS region. Set OSS_REGION secret or use standard OSS endpoint format." }
+          if (-not $region) { $region = "cn-shenzhen" }
+          Write-Host "Using OSS region: $region"
           $ossutil = Get-Content ossutil_path.txt | Select-Object -First 1
           $bundleDir = "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis"
           $exe = Get-ChildItem -Path $bundleDir -Filter *.exe | Select-Object -First 1
@@ -110,14 +111,14 @@ jobs:
           $latest = Get-ChildItem -Path $bundleDir -Filter latest.json -Recurse | Select-Object -First 1
           if (-not $exe) { throw "Missing required artifact: exe" }
           $dest = "oss://$($env:OSS_BUCKET)/d-space/supplier-desktop/windows"
-          & $ossutil cp $exe.FullName "$dest/" --region $region -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
+          & $ossutil --region $region cp $exe.FullName "$dest/" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
           if ($sig) {
-            & $ossutil cp $sig.FullName "$dest/" --region $region -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
+            & $ossutil --region $region cp $sig.FullName "$dest/" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
           } else {
             Write-Warning "No .sig file found under $bundleDir, skip uploading signature."
           }
           if ($latest) {
-            & $ossutil cp $latest.FullName "$dest/latest.json" --region $region -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
+            & $ossutil --region $region cp $latest.FullName "$dest/latest.json" -e $env:OSS_ENDPOINT -i $env:OSS_ACCESS_KEY_ID -k $env:OSS_ACCESS_KEY_SECRET -u
           } else {
             Write-Warning "No latest.json found under $bundleDir, skip uploading updater manifest."
           }

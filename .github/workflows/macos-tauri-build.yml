@@ -111,7 +111,11 @@ jobs:
           if [ -z "$REGION" ]; then
             REGION="$(printf '%s' "$OSS_ENDPOINT" | sed -E 's#^https?://##; s#/.*$##' | sed -nE 's#^oss-([a-z0-9-]+)(-internal)?\.aliyuncs\.com$#\1#p')"
           fi
+          if [ -z "$REGION" ]; then
+            REGION="cn-shenzhen"
+          fi
           test -n "$REGION"
+          echo "Using OSS region: $REGION"
           OSSUTIL="${OSSUTIL_BIN:-$(find . -type f -path "*/ossutil" | head -n 1)}"
           test -n "$OSSUTIL"
           BUNDLE_DIR="src-tauri/target/release/bundle"
@@ -123,13 +127,13 @@ jobs:
           DESTS=("oss://${OSS_BUCKET}/d-space/supplier-desktop/macos" "oss://${OSS_BUCKET}/d-space/supplier-desktop/darwin")
           for DEST in "${DESTS[@]}"; do
             if [ -d "$APP_FILE" ]; then
-              "$OSSUTIL" cp "$APP_FILE" "$DEST/" --recursive --region "$REGION" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+              "$OSSUTIL" --region "$REGION" cp "$APP_FILE" "$DEST/" --recursive -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
             else
-              "$OSSUTIL" cp "$APP_FILE" "$DEST/" --region "$REGION" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+              "$OSSUTIL" --region "$REGION" cp "$APP_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
             fi
             if [ -n "$TAR_FILE" ] && [ -n "$SIG_FILE" ] && [ -n "$LATEST_JSON" ]; then
-              "$OSSUTIL" cp "$TAR_FILE" "$DEST/" --region "$REGION" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
-              "$OSSUTIL" cp "$SIG_FILE" "$DEST/" --region "$REGION" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
-              "$OSSUTIL" cp "$LATEST_JSON" "$DEST/latest.json" --region "$REGION" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+              "$OSSUTIL" --region "$REGION" cp "$TAR_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+              "$OSSUTIL" --region "$REGION" cp "$SIG_FILE" "$DEST/" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
+              "$OSSUTIL" --region "$REGION" cp "$LATEST_JSON" "$DEST/latest.json" -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET" -u
             fi
           done
