@@ -164,6 +164,7 @@
                         :step="1"
                         :step-strictly="true"
                         :precision="0"
+                        placeholder="请输入本次交付数量"
                         style="width: 100%"
                     />
                 </el-form-item>
@@ -172,6 +173,7 @@
                         v-model="submitForm.actualDeliveryDate"
                         type="date"
                         value-format="YYYY-MM-DD"
+                        placeholder="请选择实际交付日期"
                         style="width: 100%"
                     />
                 </el-form-item>
@@ -180,6 +182,7 @@
                         v-model="submitForm.remark"
                         type="textarea"
                         :rows="3"
+                        placeholder="请输入备注（选填）"
                         maxlength="200"
                         show-word-limit
                     />
