@@ -91,13 +91,39 @@
                 <el-table-column
                     prop="vendorReplyDate"
                     label="供应商回复日期"
-                    min-width="130"
+                    min-width="200"
                     align="center"
                 >
                     <template #default="{ row }">
-                        <span :class="{ 'no-date': !row.vendorReplyDate }">{{
-                            row.vendorReplyDate || "-"
-                        }}</span>
+                        <span
+                            v-if="!row.vendorReplyDate"
+                            :class="{ 'no-date': !row.vendorReplyDate }"
+                        >
+                            -
+                        </span>
+                        <el-popover
+                            v-else-if="row.vendorReplyType === 2"
+                            placement="top"
+                            trigger="hover"
+                            width="280"
+                        >
+                            <template #reference>
+                                <span class="reply-plan-link">
+                                    {{ getReplyDateSummary(row) }}
+                                </span>
+                            </template>
+                            <div class="reply-plan-popover">
+                                <div
+                                    v-for="(plan, index) in parseReplyPlans(row)"
+                                    :key="`${row.id}-${index}`"
+                                    class="reply-plan-popover-item"
+                                >
+                                    <span>{{ formatReplyPlanDate(plan.replyDate) }}</span>
+                                    <span>{{ plan.deliveryQty }}</span>
+                                </div>
+                            </div>
+                        </el-popover>
+                        <span v-else>{{ row.vendorReplyDate }}</span>
                     </template>
                 </el-table-column>
                 <el-table-column
@@ -202,8 +228,8 @@
         <!-- 回复日期对话框 -->
         <el-dialog
             v-model="replyDateDialogVisible"
-            title="供应商回复日期确认"
-            width="480px"
+            title="供应商回复计划确认"
+            width="700px"
             destroy-on-close
         >
             <el-form
@@ -224,14 +250,62 @@
                         disabled
                     />
                 </el-form-item>
-                <el-form-item label="回复日期" prop="replyDate">
-                    <el-date-picker
-                        v-model="replyDateForm.replyDate"
-                        type="date"
-                        value-format="YYYY-MM-DD"
-                        placeholder="请选择回复日期"
-                        style="width: 100%"
-                    />
+                <el-form-item label="回复类型" prop="replyType">
+                    <el-radio-group
+                        v-model="replyDateForm.replyType"
+                        @change="handleReplyTypeChange"
+                    >
+                        <el-radio :value="1">一次性交货</el-radio>
+                        <el-radio :value="2">分批次交货</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item label="回复计划">
+                    <div class="reply-plan-container">
+                        <div
+                            v-for="(item, index) in replyDateForm.replyPlanList"
+                            :key="index"
+                            class="reply-plan-row"
+                        >
+                            <el-date-picker
+                                v-model="item.replyDate"
+                                type="date"
+                                value-format="YYYY-MM-DD"
+                                placeholder="回复日期"
+                                style="width: 220px"
+                            />
+                            <el-input-number
+                                v-model="item.deliveryQty"
+                                :min="1"
+                                :step="1"
+                                :step-strictly="true"
+                                :precision="0"
+                                placeholder="交货数量"
+                                style="width: 180px"
+                            />
+                            <el-button
+                                v-if="replyDateForm.replyType === 2"
+                                link
+                                type="danger"
+                                :disabled="replyDateForm.replyPlanList.length <= 2"
+                                @click="removeReplyPlan(index)"
+                            >
+                                删除
+                            </el-button>
+                        </div>
+                        <div
+                            v-if="replyDateForm.replyType === 2"
+                            class="reply-plan-actions"
+                        >
+                            <el-button link type="primary" @click="addReplyPlan"
+                                >+ 新增一条计划</el-button
+                            >
+                        </div>
+                        <div class="reply-plan-total">
+                            计划总量：{{ planTotal }} / 采购数量：{{
+                                currentRow.quantity || 0
+                            }}
+                        </div>
+                    </div>
                 </el-form-item>
             </el-form>
             <template #footer>
@@ -246,6 +320,7 @@
                 >
             </template>
         </el-dialog>
+
     </div>
 </template>
 
@@ -263,7 +338,7 @@ const defaultQuery = {
     beginTime: "",
     endTime: "",
     p: 1,
-    l: 10,
+    l: 100,
 };
 
 const loading = ref(false);
@@ -298,11 +373,12 @@ const replyDateLoading = ref(false);
 const replyDateFormRef = ref(null);
 const replyDateForm = reactive({
     poId: undefined,
-    replyDate: "",
+    replyType: 1,
+    replyPlanList: [{ replyDate: "", deliveryQty: undefined }],
 });
 const replyDateRules = {
-    replyDate: [
-        { required: true, message: "请选择回复日期", trigger: "change" },
+    replyType: [
+        { required: true, message: "请选择回复类型", trigger: "change" },
     ],
 };
 
@@ -310,11 +386,46 @@ const maxQty = computed(() => {
     const val = Number(currentRow.value.remainingQty || 0);
     return val > 0 ? Math.max(1, Math.floor(val)) : 1;
 });
-
+const planTotal = computed(() =>
+    replyDateForm.replyPlanList.reduce((sum, item) => {
+        const qty = Number(item.deliveryQty || 0);
+        return sum + (Number.isFinite(qty) ? qty : 0);
+    }, 0)
+);
 function statusType(s) {
     if (s === "已完成") return "success";
     if (s === "部分交付") return "warning";
     return "info";
+}
+
+function formatReplyPlanDate(value) {
+    if (!value) return "-";
+    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return value;
+    }
+    const date = new Date(Number(value));
+    if (Number.isNaN(date.getTime())) return String(value);
+    const y = date.getFullYear();
+    const m = `${date.getMonth() + 1}`.padStart(2, "0");
+    const d = `${date.getDate()}`.padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+function parseReplyPlans(row) {
+    if (!row?.vendorReplyPlan) return [];
+    try {
+        const plans = JSON.parse(row.vendorReplyPlan);
+        return Array.isArray(plans) ? plans : [];
+    } catch {
+        return [];
+    }
+}
+
+function getReplyDateSummary(row) {
+    const plans = parseReplyPlans(row);
+    if (!plans.length) return row.vendorReplyDate || "-";
+    const first = plans[0];
+    return `分批 ${plans.length} 次 / 首批 ${formatReplyPlanDate(first.replyDate)}`;
 }
 
 function buildQuery() {
@@ -386,18 +497,83 @@ function openReplyDateDialog(row) {
     currentRow.value = row;
     Object.assign(replyDateForm, {
         poId: row.id,
-        replyDate: "",
+        replyType: 1,
+        replyPlanList: [{ replyDate: "", deliveryQty: undefined }],
     });
     replyDateDialogVisible.value = true;
+}
+
+function createEmptyReplyPlan() {
+    return { replyDate: "", deliveryQty: undefined };
+}
+
+function handleReplyTypeChange(type) {
+    if (type === 1) {
+        replyDateForm.replyPlanList = [{ replyDate: "", deliveryQty: undefined }];
+        return;
+    }
+    if (replyDateForm.replyPlanList.length < 2) {
+        replyDateForm.replyPlanList = [
+            { replyDate: "", deliveryQty: undefined },
+            { replyDate: "", deliveryQty: undefined },
+        ];
+    }
+}
+
+function addReplyPlan() {
+    replyDateForm.replyPlanList.push({ replyDate: "", deliveryQty: undefined });
+}
+
+function removeReplyPlan(index) {
+    replyDateForm.replyPlanList.splice(index, 1);
 }
 
 function handleReplyDateSubmit() {
     replyDateFormRef.value.validate((valid) => {
         if (!valid) return;
+        const plans = replyDateForm.replyPlanList.map((item) => ({
+            replyDate: item.replyDate,
+            deliveryQty: Number(item.deliveryQty),
+        }));
+
+        if (
+            plans.some(
+                (item) => !item.replyDate || !item.deliveryQty || item.deliveryQty <= 0
+            )
+        ) {
+            ElMessage.warning("回复计划中的日期和交货数量不能为空，且交货数量必须大于0");
+            return;
+        }
+
+        if (replyDateForm.replyType === 1 && plans.length !== 1) {
+            ElMessage.warning("一次性交货只能提交一条回复计划");
+            return;
+        }
+
+        if (replyDateForm.replyType === 2 && plans.length < 2) {
+            ElMessage.warning("分批次交货至少提交两条回复计划");
+            return;
+        }
+
+        const totalQty = plans.reduce((sum, item) => sum + item.deliveryQty, 0);
+        const orderedQty = Number(currentRow.value.quantity || 0);
+        if (orderedQty > 0 && totalQty > orderedQty) {
+            ElMessage.warning("回复计划总数量不能大于采购数量");
+            return;
+        }
+
+        const sortedPlans = [...plans].sort(
+            (a, b) => new Date(a.replyDate).getTime() - new Date(b.replyDate).getTime()
+        );
+
         replyDateLoading.value = true;
-        confirmReplyDate({ ...replyDateForm })
+        confirmReplyDate({
+            poId: replyDateForm.poId,
+            replyType: replyDateForm.replyType,
+            replyPlanList: sortedPlans,
+        })
             .then(() => {
-                ElMessage.success("回复日期确认成功");
+                ElMessage.success("回复计划确认成功");
                 replyDateDialogVisible.value = false;
                 getList();
             })
@@ -440,5 +616,33 @@ onMounted(() => {
 .no-date {
     color: #e6a23c;
     font-style: italic;
+}
+.reply-plan-container {
+    width: 100%;
+}
+.reply-plan-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+.reply-plan-actions {
+    margin-top: 4px;
+}
+.reply-plan-total {
+    margin-top: 8px;
+    color: #606266;
+}
+.reply-plan-link {
+    color: #409eff;
+    cursor: pointer;
+}
+.reply-plan-popover-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+    color: #303133;
 }
 </style>

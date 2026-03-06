@@ -1,7 +1,7 @@
 {
   "name": "supplier-admin",
-  "version": "1.0.1",
-  "description": "供应商管理后台",
+  "version": "1.0.2",
+  "description": "供应商系统",
   "author": "Digiwise",
   "license": "MIT",
   "type": "module",

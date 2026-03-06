@@ -46,10 +46,10 @@ export function getMyMetrics() {
   })
 }
 
-export function confirmReplyDate(params) {
+export function confirmReplyDate(data) {
   return request({
     url: '/vendor/delivery/reply-date',
     method: 'post',
-    params
+    data
   })
 }

@@ -24,19 +24,34 @@
         <div class="quality-stats">
           <el-tooltip content="订单准交率(%)" placement="top">
             <div class="quality-stats__item">
-              <el-icon :size="16" color="#409eff"><Timer /></el-icon>
+              <el-icon
+                :size="16"
+                :color="isBelowThreshold(qualitySummary.onTimeDeliveryRate) ? '#f56c6c' : '#409eff'"
+              >
+                <TrendCharts />
+              </el-icon>
               <span>{{ qualitySummary.onTimeDeliveryRate }}</span>
             </div>
           </el-tooltip>
           <el-tooltip content="批次合格率" placement="top">
             <div class="quality-stats__item">
-              <el-icon :size="16" color="#67c23a"><CircleCheck /></el-icon>
+              <el-icon
+                :size="16"
+                :color="isBelowThreshold(qualitySummary.batchQualificationRate) ? '#f56c6c' : '#67c23a'"
+              >
+                <CircleCheckFilled />
+              </el-icon>
               <span>{{ qualitySummary.batchQualificationRate }}</span>
             </div>
           </el-tooltip>
           <el-tooltip content="总特采批次数" placement="top">
             <div class="quality-stats__item">
-              <el-icon :size="16" color="#e6a23c"><Star /></el-icon>
+              <el-icon
+                :size="16"
+                :color="isBelowThreshold(qualitySummary.totalSpecialProcurementBatchCount) ? '#f56c6c' : '#e6a23c'"
+              >
+                <WarningFilled />
+              </el-icon>
               <span>{{ qualitySummary.totalSpecialProcurementBatchCount }}</span>
             </div>
           </el-tooltip>
@@ -135,9 +150,9 @@
 <script setup>
 import { ElMessage } from "element-plus";
 import { getMyConfirmations, getMyMetrics } from "@/api/vendor-delivery";
-import { CircleCheck, Star, Timer } from '@element-plus/icons-vue';
+import { CircleCheckFilled, TrendCharts, WarningFilled } from "@element-plus/icons-vue";
 
-const defaultQuery = { poCode: "", beginTime: "", endTime: "", p: 1, l: 10 };
+const defaultQuery = { poCode: "", beginTime: "", endTime: "", p: 1, l: 100 };
 
 const loading = ref(false);
 const total = ref(0);
@@ -161,6 +176,18 @@ function formatPercent(val) {
   const num = Number(val);
   if (Number.isNaN(num)) return "--";
   return `${num}%`;
+}
+
+function parseMetricNumber(val) {
+  if (val === null || val === undefined || val === "") return Number.NaN;
+  const normalized = String(val).replace("%", "").trim();
+  const num = Number(normalized);
+  return Number.isFinite(num) ? num : Number.NaN;
+}
+
+function isBelowThreshold(val, threshold = 50) {
+  const num = parseMetricNumber(val);
+  return Number.isFinite(num) && num < threshold;
 }
 
 function getMetrics() {

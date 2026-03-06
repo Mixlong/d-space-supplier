@@ -1,0 +1,1 @@
+import{_ as c,c as e,o}from"./index--mQ7pp4_.js";const s={},t={class:"p"};function _(a,n){return o(),e("div",t,"404 页面不存在")}const d=c(s,[["render",_],["__scopeId","data-v-37024d01"]]);export{d as default};

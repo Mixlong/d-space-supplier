@@ -5,7 +5,7 @@
       <router-link class="logo-container" to="/">
         <template v-if="!collapse">
           <img :src="logoImage" alt="logo" class="logo-image" />
-          <div class="system-name">供应商管理后台</div>
+          <div class="system-name">供应商系统</div>
         </template>
         <div v-else class="logo-text">D</div>
       </router-link>
@@ -168,7 +168,7 @@ $menu-background: #1b294e;
 .menu-section {
   flex: 1;
   overflow: hidden;
-  margin-top: 40px;
+  margin-top: 20px;
   background: $menu-background;
 
   :deep(.el-scrollbar) {

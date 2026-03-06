@@ -22,7 +22,7 @@ export const constantRoutes = [
     path: "/supplier",
     component: Layout,
     redirect: "/supplier/delivery/my-purchase-orders",
-    meta: { title: "我的交付", icon: "OfficeBuilding" },
+    meta: { title: "订单交付", icon: "OfficeBuilding" },
     children: [
       {
         path: "delivery/my-purchase-orders",
@@ -42,13 +42,13 @@ export const constantRoutes = [
     path: "/assessment",
     component: Layout,
     redirect: "/assessment/records",
-    meta: { title: "我的考核", icon: "DataAnalysis" },
+    meta: { title: "质量考核", icon: "DataAnalysis" },
     children: [
       {
         path: "records",
         component: () => import("@/views/supplier/delivery/my-timeliness.vue"),
         name: "AssessmentRecords",
-        meta: { title: "考核记录", icon: "DataLine" },
+        meta: { title: "质量考核", icon: "DataLine" },
       },
     ],
   },

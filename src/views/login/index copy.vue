@@ -10,7 +10,7 @@
       <div class="brand-decor brand-decor--dot-grid"></div>
       <div class="brand-content">
         <img :src="logoImage" alt="logo" class="brand-logo" />
-        <h1 class="brand-title">供应商管理后台</h1>
+        <h1 class="brand-title">供应商系统</h1>
         <p class="brand-subtitle">高效 · 安全 · 智能</p>
         <div class="brand-divider"></div>
         <div class="brand-features">

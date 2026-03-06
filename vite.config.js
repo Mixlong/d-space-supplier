@@ -4,6 +4,7 @@ import AutoImport from 'unplugin-auto-import/vite'
 import path from 'path'
 
 export default defineConfig({
+  base: './',
   plugins: [
     vue(),
     AutoImport({
@@ -20,5 +21,8 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3003,
     strictPort: true,
+  },
+  build: {
+    outDir: 'admin-supplier',
   },
 })

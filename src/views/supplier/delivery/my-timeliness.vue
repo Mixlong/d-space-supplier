@@ -108,7 +108,7 @@ const defaultQuery = {
   beginTime: "",
   endTime: "",
   p: 1,
-  l: 10,
+  l: 100,
 };
 
 const loading = ref(false);

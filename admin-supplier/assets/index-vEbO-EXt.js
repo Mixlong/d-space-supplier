@@ -1,0 +1,1 @@
+import{_ as e,c,o}from"./index--mQ7pp4_.js";const s={},t={class:"p"};function _(a,n){return o(),c("div",t,"欢迎使用 D-Space（供应商管理）")}const d=e(s,[["render",_],["__scopeId","data-v-530d7612"]]);export{d as default};
