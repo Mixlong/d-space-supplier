@@ -1,4 +1,4 @@
-import { createWebHistory, createRouter } from "vue-router"
+import { createWebHashHistory, createRouter } from "vue-router"
 
 const Layout = () => import("@/layout/index.vue")
 
@@ -35,6 +35,12 @@ export const constantRoutes = [
         component: () => import("@/views/supplier/delivery/my-confirmations.vue"),
         name: "MyConfirmations",
         meta: { title: "已交订单", icon: "DocumentCopy" },
+      },
+      {
+        path: "delivery/my-forecast",
+        component: () => import("@/views/supplier/delivery/my-forecast.vue"),
+        name: "MyForecast",
+        meta: { title: "预测订单", icon: "Tickets" },
       },
     ],
   },
@@ -81,7 +87,7 @@ export const constantRoutes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes: constantRoutes,
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {

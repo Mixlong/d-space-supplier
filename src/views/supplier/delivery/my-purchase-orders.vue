@@ -68,13 +68,13 @@
                 />
                 <el-table-column
                     prop="deliveredQty"
-                    label="已交付数量"
+                    label="供应商已送数量"
                     min-width="110"
                     align="center"
                 />
                 <el-table-column
                     prop="remainingQty"
-                    label="待确认数量"
+                    label="待交付数量"
                     min-width="110"
                     align="center"
                 >
@@ -83,46 +83,54 @@
                     </template>
                 </el-table-column>
                 <el-table-column
-                    prop="planArriveDate"
-                    label="计划到货日期"
-                    min-width="130"
-                    align="center"
-                />
-                <el-table-column
-                    prop="vendorReplyDate"
-                    label="供应商回复日期"
-                    min-width="200"
+                    prop="storageQty"
+                    label="迪太已入库数量"
+                    min-width="110"
                     align="center"
                 >
                     <template #default="{ row }">
-                        <span
-                            v-if="!row.vendorReplyDate"
-                            :class="{ 'no-date': !row.vendorReplyDate }"
-                        >
-                            -
-                        </span>
-                        <el-popover
-                            v-else-if="row.vendorReplyType === 2"
-                            placement="top"
-                            trigger="hover"
-                            width="280"
-                        >
-                            <template #reference>
-                                <span class="reply-plan-link">
-                                    {{ getReplyDateSummary(row) }}
-                                </span>
-                            </template>
-                            <div class="reply-plan-popover">
-                                <div
-                                    v-for="(plan, index) in parseReplyPlans(row)"
-                                    :key="`${row.id}-${index}`"
-                                    class="reply-plan-popover-item"
-                                >
-                                    <span>{{ formatReplyPlanDate(plan.replyDate) }}</span>
-                                    <span>{{ plan.deliveryQty }}</span>
-                                </div>
+                        <span>{{ row.storageQty || 0 }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column
+                    prop="planArriveDate"
+                    label="迪太要求到货日期"
+                    min-width="220"
+                    align="center"
+                >
+                    <template #default="{ row }">
+                        <div v-if="row.pmcPlanType === 2 && parsePmcPlans(row).length > 0" class="pmc-plan-inline">
+                            <div
+                                v-for="(plan, index) in parsePmcPlans(row)"
+                                :key="`pmc-${row.id}-${index}`"
+                                class="pmc-plan-inline-item"
+                            >
+                                <span class="pmc-plan-date">{{ formatReplyPlanDate(plan.planDate) }}</span>
+                                <span class="pmc-plan-qty">（ {{ plan.deliveryQty }}）</span>
                             </div>
-                        </el-popover>
+                        </div>
+                        <span v-else-if="row.planArriveDate">{{ row.planArriveDate }}</span>
+                        <span v-else class="no-date">-</span>
+                    </template>
+                </el-table-column>
+                <el-table-column
+                    prop="vendorReplyDate"
+                    label="供应商回复日期"
+                    min-width="220"
+                    align="center"
+                >
+                    <template #default="{ row }">
+                        <span v-if="!row.vendorReplyDate" class="no-date">-</span>
+                        <div v-else-if="row.vendorReplyType === 2 && parseReplyPlans(row).length > 0" class="pmc-plan-inline">
+                            <div
+                                v-for="(plan, index) in parseReplyPlans(row)"
+                                :key="`reply-${row.id}-${index}`"
+                                class="pmc-plan-inline-item"
+                            >
+                                <span class="pmc-plan-date">{{ formatReplyPlanDate(plan.replyDate) }}</span>
+                                <span class="pmc-plan-qty">（{{ plan.deliveryQty }}）</span>
+                            </div>
+                        </div>
                         <span v-else>{{ row.vendorReplyDate }}</span>
                     </template>
                 </el-table-column>
@@ -229,27 +237,56 @@
         <el-dialog
             v-model="replyDateDialogVisible"
             title="供应商回复计划确认"
-            width="700px"
+            width="680px"
             destroy-on-close
+            class="reply-plan-dialog"
         >
             <el-form
                 ref="replyDateFormRef"
                 :model="replyDateForm"
                 :rules="replyDateRules"
-                label-width="120px"
+                label-width="100px"
             >
-                <el-form-item label="采购订单号">
-                    <el-input :model-value="currentRow.poCode" disabled />
-                </el-form-item>
-                <el-form-item label="存货编码">
-                    <el-input :model-value="currentRow.invCode" disabled />
-                </el-form-item>
-                <el-form-item label="计划到货日期">
-                    <el-input
-                        :model-value="currentRow.planArriveDate"
-                        disabled
-                    />
-                </el-form-item>
+                <!-- 订单信息摘要 -->
+                <div class="rd-info-bar">
+                    <div class="rd-info-bar__item">
+                        <span class="rd-info-bar__label">采购订单号</span>
+                        <span class="rd-info-bar__value">{{ currentRow.poCode || '-' }}</span>
+                    </div>
+                    <div class="rd-info-bar__item">
+                        <span class="rd-info-bar__label">存货编码</span>
+                        <span class="rd-info-bar__value">{{ currentRow.invCode || '-' }}</span>
+                    </div>
+                    <div class="rd-info-bar__item">
+                        <span class="rd-info-bar__label">采购数量</span>
+                        <span class="rd-info-bar__value">{{ currentRow.quantity || 0 }}</span>
+                    </div>
+                    <div class="rd-info-bar__item">
+                        <span class="rd-info-bar__label">待交付</span>
+                        <span class="rd-info-bar__value rd-info-bar__value--warn">{{ currentRow.remainingQty || 0 }}</span>
+                    </div>
+                </div>
+
+                <!-- 迪太要求到货日期 -->
+                <div class="rd-section">
+                    <div class="rd-section__title">迪太要求到货日期</div>
+                    <div v-if="parsePmcPlans(currentRow).length > 0" class="rd-pmc-list">
+                        <div
+                            v-for="(plan, index) in parsePmcPlans(currentRow)"
+                            :key="`pmc-${index}`"
+                            class="rd-pmc-list__item"
+                        >
+                            <span class="rd-pmc-list__batch">第{{ index + 1 }}批</span>
+                            <span class="rd-pmc-list__date">{{ formatReplyPlanDate(plan.planDate) }}</span>
+                            <span class="rd-pmc-list__qty">× {{ plan.deliveryQty }}</span>
+                        </div>
+                    </div>
+                    <span v-else class="rd-pmc-single">{{ currentRow.planArriveDate || '-' }}</span>
+                </div>
+
+                <el-divider />
+
+                <!-- 回复类型 -->
                 <el-form-item label="回复类型" prop="replyType">
                     <el-radio-group
                         v-model="replyDateForm.replyType"
@@ -259,65 +296,71 @@
                         <el-radio :value="2">分批次交货</el-radio>
                     </el-radio-group>
                 </el-form-item>
+
+                <!-- 回复计划表格 -->
                 <el-form-item label="回复计划">
-                    <div class="reply-plan-container">
+                    <div class="rd-plan-wrap">
+                        <div class="rd-plan-header">
+                            <span class="rd-plan-col--batch">批次</span>
+                            <span class="rd-plan-col--date">回复日期</span>
+                            <span class="rd-plan-col--qty">交货数量</span>
+                            <span class="rd-plan-col--act" v-if="replyDateForm.replyType === 2"></span>
+                        </div>
                         <div
                             v-for="(item, index) in replyDateForm.replyPlanList"
                             :key="index"
-                            class="reply-plan-row"
+                            class="rd-plan-row"
                         >
+                            <span class="rd-plan-col--batch rd-plan-batch-label">第{{ index + 1 }}批</span>
                             <el-date-picker
+                                class="rd-plan-col--date"
                                 v-model="item.replyDate"
                                 type="date"
                                 value-format="YYYY-MM-DD"
-                                placeholder="回复日期"
-                                style="width: 220px"
+                                placeholder="选择日期"
+                                style="width: 100%"
                             />
                             <el-input-number
+                                class="rd-plan-col--qty"
                                 v-model="item.deliveryQty"
                                 :min="1"
                                 :step="1"
                                 :step-strictly="true"
                                 :precision="0"
-                                placeholder="交货数量"
-                                style="width: 180px"
+                                placeholder="数量"
+                                style="width: 100%"
                             />
                             <el-button
+                                class="rd-plan-col--act"
                                 v-if="replyDateForm.replyType === 2"
                                 link
                                 type="danger"
                                 :disabled="replyDateForm.replyPlanList.length <= 2"
                                 @click="removeReplyPlan(index)"
-                            >
-                                删除
-                            </el-button>
+                            >删除</el-button>
                         </div>
-                        <div
-                            v-if="replyDateForm.replyType === 2"
-                            class="reply-plan-actions"
-                        >
-                            <el-button link type="primary" @click="addReplyPlan"
-                                >+ 新增一条计划</el-button
-                            >
+                        <div v-if="replyDateForm.replyType === 2" class="rd-plan-add">
+                            <el-button link type="primary" @click="addReplyPlan">+ 新增批次</el-button>
                         </div>
-                        <div class="reply-plan-total">
-                            计划总量：{{ planTotal }} / 采购数量：{{
-                                currentRow.quantity || 0
-                            }}
+                        <div class="rd-plan-footer">
+                            <span>计划总量：<strong>{{ planTotal }}</strong></span>
+                            <span :class="planTotal === Number(currentRow.quantity || 0) ? 'rd-plan-ok' : 'rd-plan-warn'">
+                                {{ planTotal === Number(currentRow.quantity || 0)
+                                    ? '✓ 数量已对齐'
+                                    : `差 ${Math.max(Number(currentRow.quantity || 0) - planTotal, 0)}`
+                                }}
+                            </span>
                         </div>
                     </div>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="replyDateDialogVisible = false"
-                    >取消</el-button
-                >
+                <el-button @click="replyDateDialogVisible = false">取消</el-button>
                 <el-button
                     type="primary"
                     :loading="replyDateLoading"
                     @click="handleReplyDateSubmit"
-                    >确认</el-button
-                >
+                >确认</el-button>
             </template>
         </el-dialog>
 
@@ -421,11 +464,14 @@ function parseReplyPlans(row) {
     }
 }
 
-function getReplyDateSummary(row) {
-    const plans = parseReplyPlans(row);
-    if (!plans.length) return row.vendorReplyDate || "-";
-    const first = plans[0];
-    return `分批 ${plans.length} 次 / 首批 ${formatReplyPlanDate(first.replyDate)}`;
+function parsePmcPlans(row) {
+    if (!row?.pmcPlanJson) return [];
+    try {
+        const plans = JSON.parse(row.pmcPlanJson);
+        return Array.isArray(plans) ? plans : [];
+    } catch {
+        return [];
+    }
 }
 
 function buildQuery() {
@@ -617,32 +663,172 @@ onMounted(() => {
     color: #e6a23c;
     font-style: italic;
 }
-.reply-plan-container {
-    width: 100%;
-}
-.reply-plan-row {
+/* ====== 回复日期对话框 - 简洁风格 ====== */
+
+/* 订单信息摘要条 */
+.rd-info-bar {
     display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+    border: 1px solid #ebeef5;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fafafa;
+}
+.rd-info-bar__item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 14px;
+    border-right: 1px solid #ebeef5;
+}
+.rd-info-bar__item:last-child {
+    border-right: none;
+}
+.rd-info-bar__label {
+    font-size: 12px;
+    color: #909399;
+    line-height: 1.2;
+}
+.rd-info-bar__value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #303133;
+    word-break: break-all;
+}
+.rd-info-bar__value--warn {
+    color: #e6a23c;
+}
+
+/* 迪太要求到货日期 */
+.rd-section {
+    margin-bottom: 4px;
+}
+.rd-section__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #606266;
+    margin-bottom: 8px;
+}
+.rd-pmc-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.rd-pmc-list__item {
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 10px;
+    gap: 6px;
+    padding: 5px 10px;
+    border: 1px solid #e4e7ed;
+    border-radius: 4px;
+    background: #fff;
+    font-size: 13px;
 }
-.reply-plan-actions {
-    margin-top: 4px;
+.rd-pmc-list__batch {
+    color: #909399;
 }
-.reply-plan-total {
-    margin-top: 8px;
+.rd-pmc-list__date {
+    color: #303133;
+    font-weight: 500;
+}
+.rd-pmc-list__qty {
+    color: #409eff;
+    font-weight: 600;
+}
+.rd-pmc-single {
+    font-size: 13px;
     color: #606266;
 }
-.reply-plan-link {
-    color: #409eff;
-    cursor: pointer;
+
+/* 回复计划表格 */
+.rd-plan-wrap {
+    width: 100%;
+    border: 1px solid #ebeef5;
+    border-radius: 6px;
+    overflow: hidden;
 }
-.reply-plan-popover-item {
+.rd-plan-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #fafafa;
+    border-bottom: 1px solid #ebeef5;
+    font-size: 12px;
+    font-weight: 600;
+    color: #909399;
+}
+.rd-plan-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.rd-plan-row:last-of-type {
+    border-bottom: none;
+}
+.rd-plan-col--batch {
+    width: 56px;
+    min-width: 56px;
+    text-align: center;
+}
+.rd-plan-col--date {
+    flex: 1 1 0;
+    min-width: 140px;
+}
+.rd-plan-col--qty {
+    width: 140px;
+    min-width: 140px;
+}
+.rd-plan-col--act {
+    width: 48px;
+    min-width: 48px;
+    text-align: center;
+}
+.rd-plan-batch-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #606266;
+}
+.rd-plan-add {
+    padding: 6px 12px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.rd-plan-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 4px 0;
-    color: #303133;
+    padding: 8px 12px;
+    background: #fafafa;
+    font-size: 13px;
+    color: #606266;
+}
+.rd-plan-ok {
+    color: #67c23a;
+    font-weight: 600;
+}
+.rd-plan-warn {
+    color: #e6a23c;
+    font-weight: 600;
+}
+
+:deep(.reply-plan-dialog .el-dialog) {
+    border-radius: 8px;
+}
+:deep(.reply-plan-dialog .el-dialog__body) {
+    padding: 16px 20px;
+}
+:deep(.reply-plan-dialog .el-dialog__footer) {
+    padding: 12px 20px;
+}
+:deep(.reply-plan-dialog .el-divider) {
+    margin: 12px 0;
+}
+:deep(.reply-plan-dialog .el-date-editor.el-input),
+:deep(.reply-plan-dialog .el-input-number) {
+    width: 100%;
 }
 </style>
