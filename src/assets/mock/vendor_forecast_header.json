@@ -1,0 +1,197 @@
+[
+  {
+    "key": "materialInfo",
+    "label": "物料信息",
+    "fixed": "left",
+    "labelClassName": "hdr-material-group",
+    "children": [
+      {
+        "key": "inventoryCode",
+        "label": "存货编码",
+        "prop": "inventoryCode",
+        "minWidth": 130,
+        "showOverflowTooltip": true,
+        "labelClassName": "hdr-material",
+        "type": "text"
+      },
+      {
+        "key": "inventoryName",
+        "label": "存货名称",
+        "prop": "inventoryName",
+        "minWidth": 150,
+        "showOverflowTooltip": true,
+        "labelClassName": "hdr-material",
+        "type": "text"
+      },
+      {
+        "key": "materialDesc",
+        "label": "物料描述",
+        "prop": "materialDesc",
+        "minWidth": 180,
+        "showOverflowTooltip": true,
+        "labelClassName": "hdr-material",
+        "type": "text"
+      },
+      {
+        "key": "specification",
+        "label": "规格尺寸",
+        "prop": "specification",
+        "minWidth": 180,
+        "showOverflowTooltip": true,
+        "labelClassName": "hdr-material",
+        "type": "text"
+      },
+      {
+        "key": "machineModel",
+        "label": "用于机型",
+        "prop": "machineModel",
+        "minWidth": 130,
+        "showOverflowTooltip": true,
+        "labelClassName": "hdr-material",
+        "type": "text"
+      },
+      {
+        "key": "materialBrand",
+        "label": "原材料品牌",
+        "prop": "materialBrand",
+        "minWidth": 120,
+        "showOverflowTooltip": true,
+        "labelClassName": "hdr-material",
+        "type": "text"
+      },
+      {
+        "key": "remark",
+        "label": "备注说明",
+        "prop": "remark",
+        "minWidth": 180,
+        "showOverflowTooltip": true,
+        "labelClassName": "hdr-material",
+        "type": "text"
+      }
+    ]
+  },
+  {
+    "key": "forecastDemand",
+    "label": "预测计划需求",
+    "labelClassName": "hdr-demand-group",
+    "children": [
+      {
+        "key": "totalDemand",
+        "label": "预测总需求",
+        "prop": "totalDemand",
+        "minWidth": 110,
+        "align": "center",
+        "labelClassName": "hdr-demand-total",
+        "type": "total"
+      },
+      {
+        "key": "month1Qty",
+        "label": "1月",
+        "prop": "month1Qty",
+        "minWidth": 92,
+        "align": "center",
+        "labelClassName": "hdr-demand-month",
+        "type": "month"
+      },
+      {
+        "key": "month2Qty",
+        "label": "2月",
+        "prop": "month2Qty",
+        "minWidth": 92,
+        "align": "center",
+        "labelClassName": "hdr-demand-month",
+        "type": "month"
+      },
+      {
+        "key": "month3Qty",
+        "label": "3月",
+        "prop": "month3Qty",
+        "minWidth": 92,
+        "align": "center",
+        "labelClassName": "hdr-demand-month",
+        "type": "month"
+      },
+      {
+        "key": "month4Qty",
+        "label": "4月",
+        "prop": "month4Qty",
+        "minWidth": 92,
+        "align": "center",
+        "labelClassName": "hdr-demand-month",
+        "type": "month"
+      },
+      {
+        "key": "month5Qty",
+        "label": "5月",
+        "prop": "month5Qty",
+        "minWidth": 92,
+        "align": "center",
+        "labelClassName": "hdr-demand-month",
+        "type": "month"
+      },
+      {
+        "key": "month6Qty",
+        "label": "6月",
+        "prop": "month6Qty",
+        "minWidth": 92,
+        "align": "center",
+        "labelClassName": "hdr-demand-month",
+        "type": "month"
+      },
+      {
+        "key": "month7Qty",
+        "label": "7月",
+        "prop": "month7Qty",
+        "minWidth": 92,
+        "align": "center",
+        "labelClassName": "hdr-demand-month",
+        "type": "month"
+      },
+      {
+        "key": "month8Qty",
+        "label": "8月",
+        "prop": "month8Qty",
+        "minWidth": 92,
+        "align": "center",
+        "labelClassName": "hdr-demand-month",
+        "type": "month"
+      },
+      {
+        "key": "month9Qty",
+        "label": "9月",
+        "prop": "month9Qty",
+        "minWidth": 92,
+        "align": "center",
+        "labelClassName": "hdr-demand-month",
+        "type": "month"
+      },
+      {
+        "key": "month10Qty",
+        "label": "10月",
+        "prop": "month10Qty",
+        "minWidth": 92,
+        "align": "center",
+        "labelClassName": "hdr-demand-month",
+        "type": "month"
+      },
+      {
+        "key": "month11Qty",
+        "label": "11月",
+        "prop": "month11Qty",
+        "minWidth": 92,
+        "align": "center",
+        "labelClassName": "hdr-demand-month",
+        "type": "month"
+      },
+      {
+        "key": "month12Qty",
+        "label": "12月",
+        "prop": "month12Qty",
+        "minWidth": 92,
+        "align": "center",
+        "labelClassName": "hdr-demand-month",
+        "type": "month"
+      }
+    ]
+  }
+]

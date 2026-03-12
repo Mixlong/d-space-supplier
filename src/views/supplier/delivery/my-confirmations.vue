@@ -9,6 +9,14 @@
           style="width: 200px"
         />
       </el-form-item>
+      <el-form-item label="请购单号">
+        <el-input
+          v-model="queryParams.appCode"
+          placeholder="请输入请购单号"
+          clearable
+          style="width: 200px"
+        />
+      </el-form-item>
       <el-form-item label="时间范围">
         <el-date-picker
           v-model="dateRange"
@@ -21,38 +29,16 @@
         />
       </el-form-item>
       <template #extra-actions>
-        <div class="quality-stats">
+        <div class="delivery-metric">
           <el-tooltip content="订单准交率(%)" placement="top">
-            <div class="quality-stats__item">
+            <div class="delivery-metric__item">
               <el-icon
                 :size="16"
-                :color="isBelowThreshold(qualitySummary.onTimeDeliveryRate) ? '#f56c6c' : '#409eff'"
+                :color="isBelowThreshold(onTimeDeliveryRate) ? '#f56c6c' : '#409eff'"
               >
                 <TrendCharts />
               </el-icon>
-              <span>{{ qualitySummary.onTimeDeliveryRate }}</span>
-            </div>
-          </el-tooltip>
-          <el-tooltip content="批次合格率" placement="top">
-            <div class="quality-stats__item">
-              <el-icon
-                :size="16"
-                :color="isBelowThreshold(qualitySummary.batchQualificationRate) ? '#f56c6c' : '#67c23a'"
-              >
-                <CircleCheckFilled />
-              </el-icon>
-              <span>{{ qualitySummary.batchQualificationRate }}</span>
-            </div>
-          </el-tooltip>
-          <el-tooltip content="总特采批次数" placement="top">
-            <div class="quality-stats__item">
-              <el-icon
-                :size="16"
-                :color="isBelowThreshold(qualitySummary.totalSpecialProcurementBatchCount) ? '#f56c6c' : '#e6a23c'"
-              >
-                <WarningFilled />
-              </el-icon>
-              <span>{{ qualitySummary.totalSpecialProcurementBatchCount }}</span>
+              <span>{{ onTimeDeliveryRate }}</span>
             </div>
           </el-tooltip>
         </div>
@@ -66,7 +52,6 @@
       v-model:size="queryParams.l"
       @pagination="getList"
     >
-
       <el-table
         v-loading="loading"
         :data="tableData"
@@ -76,99 +61,193 @@
         align="center"
         header-align="center"
       >
-        <el-table-column prop="poCode" label="采购订单号" min-width="160" />
+        <el-table-column prop="poCode" label="采购订单号" min-width="160" label-class-name="hdr-order" />
+        <el-table-column prop="invCode" label="物料编码" min-width="130" label-class-name="hdr-order" />
         <el-table-column
-          prop="poRowNo"
-          label="订单行号"
-          width="90"
+          prop="quantity"
+          label="采购数量"
+          min-width="100"
           align="center"
-        />
-        <el-table-column prop="invCode" label="存货编码" min-width="130" />
-        <el-table-column
-          prop="deliveryQty"
-          label="本次交付数量"
-          min-width="120"
-          align="center"
+          label-class-name="hdr-order"
         />
         <el-table-column
-          prop="actualDeliveryDate"
-          label="实际交付日期"
-          min-width="130"
+          prop="deliveredQty"
+          label="供应商已送数量"
+          min-width="110"
           align="center"
+          label-class-name="hdr-delivery"
         />
         <el-table-column
-          prop="defectiveRate"
-          label="不良率"
-          min-width="90"
+          prop="planArriveDate"
+          label="PMC计划到货日期"
+          min-width="220"
           align="center"
-        />
-        <el-table-column
-          prop="isSpecialProcurement"
-          label="是否特采"
-          min-width="90"
-          align="center"
+          label-class-name="hdr-demand"
+          class-name="top-align-cell"
         >
           <template #default="{ row }">
-            <el-tag
-              :type="row.isSpecialProcurement == 1 ? 'danger' : 'info'"
-              size="small"
-              >{{ row.isSpecialProcurement == 1 ? "是" : "否" }}</el-tag
+            <span v-if="!row.planArriveDate && parsePmcPlans(row).length === 0" class="no-date">-</span>
+            <div
+              v-else-if="parsePmcPlans(row).length > 0"
+              class="pmc-plan-inline"
             >
+              <div
+                v-for="(plan, index) in parsePmcPlans(row)"
+                :key="`pmc-${row.id}-${index}`"
+                class="pmc-plan-inline-item"
+              >
+                <span class="pmc-plan-date">日期：<span class="stat-num">{{ formatReplyPlanDate(plan.planDate) }}</span></span>
+                <span class="pmc-plan-qty">数量：<span class="stat-num">{{ plan.deliveryQty }}</span></span>
+              </div>
+            </div>
+            <span v-else-if="row.planArriveDate" class="pmc-plan-single">日期：<span class="stat-num">{{ row.planArriveDate }}</span></span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="vendorReplyDate"
+          label="供应商回复日期"
+          min-width="220"
+          align="center"
+          label-class-name="hdr-demand"
+          class-name="top-align-cell"
+        >
+          <template #default="{ row }">
+            <span v-if="!row.vendorReplyDate && parseReplyPlans(row).length === 0" class="no-date">-</span>
+            <div
+              v-else-if="parseReplyPlans(row).length > 0"
+              class="pmc-plan-inline"
+            >
+              <div
+                v-for="(plan, index) in parseReplyPlans(row)"
+                :key="`reply-${row.id}-${index}`"
+                class="pmc-plan-inline-item"
+              >
+                <span class="pmc-plan-date">日期：<span class="stat-num">{{ formatReplyPlanDate(plan.replyDate) }}</span></span>
+                <span class="pmc-plan-qty">数量：<span class="stat-num">{{ plan.deliveryQty }}</span></span>
+              </div>
+            </div>
+            <span v-else class="pmc-plan-single">日期：<span class="stat-num">{{ row.vendorReplyDate }}</span></span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="remainingQty"
+          label="待交付数量"
+          min-width="110"
+          align="center"
+          label-class-name="hdr-delivery"
+        >
+          <template #default="{ row }">
+            <span class="pending-qty">{{ row.remainingQty }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="ireceivedqty"
+          label="迪太已入库数量"
+          min-width="110"
+          align="center"
+          label-class-name="hdr-delivery"
+        >
+          <template #default="{ row }">
+            <span>{{ row.ireceivedqty ?? row.storageQty ?? 0 }}</span>
           </template>
         </el-table-column>
         <el-table-column
           prop="overdueDays"
           label="超期天数"
-          width="90"
+          width="100"
           align="center"
+          label-class-name="hdr-reply"
         >
           <template #default="{ row }">
             <span
-              :style="{ color: row.overdueDays > 0 ? '#f56c6c' : '#67c23a' }"
-              >{{ row.overdueDays }}</span
+              class="overdue-days"
+              :class="{ 'is-overdue': Number(row.overdueDays || 0) > 0 }"
             >
+              {{ row.overdueDays ?? 0 }}
+            </span>
           </template>
         </el-table-column>
         <el-table-column
-          prop="remark"
-          label="备注"
-          min-width="160"
-          show-overflow-tooltip
-        />
-        <el-table-column
-          prop="createTime"
-          label="创建时间"
-          min-width="170"
+          prop="deliveryStatus"
+          label="交付状态"
+          min-width="100"
           align="center"
-        />
+          label-class-name="hdr-status"
+        >
+          <template #default="{ row }">
+            <el-tag :type="statusType(row.deliveryStatus)" size="small">
+              {{ row.deliveryStatus || "未交付" }}
+            </el-tag>
+          </template>
+        </el-table-column>
       </el-table>
     </page-table>
-
   </div>
 </template>
 
 <script setup>
 import { ElMessage } from "element-plus";
-import { getMyConfirmations, getMyMetrics } from "@/api/vendor-delivery";
-import { CircleCheckFilled, TrendCharts, WarningFilled } from "@element-plus/icons-vue";
+import { TrendCharts } from "@element-plus/icons-vue";
+import {
+  DELIVERY_COMPLETED_FILTER,
+  getMyMetrics,
+  getMyPurchaseOrders,
+} from "@/api/vendor-delivery";
 
-const defaultQuery = { poCode: "", beginTime: "", endTime: "", p: 1, l: 100 };
+const defaultQuery = {
+  poCode: "",
+  appCode: "",
+  isCompleted: DELIVERY_COMPLETED_FILTER.COMPLETED,
+  beginTime: "",
+  endTime: "",
+  p: 1,
+  l: 100,
+};
 
 const loading = ref(false);
 const total = ref(0);
 const tableData = ref([]);
 const dateRange = ref([]);
 const queryParams = reactive({ ...defaultQuery });
-const qualitySummary = reactive({
-  onTimeDeliveryRate: "--",
-  batchQualificationRate: "--",
-  totalSpecialProcurementBatchCount: "--",
-});
+const onTimeDeliveryRate = ref("--");
 
-function resetMetrics() {
-  qualitySummary.onTimeDeliveryRate = "--";
-  qualitySummary.batchQualificationRate = "--";
-  qualitySummary.totalSpecialProcurementBatchCount = "--";
+function formatReplyPlanDate(value) {
+  if (!value) return "-";
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+  const date = new Date(Number(value));
+  if (Number.isNaN(date.getTime())) return String(value);
+  const y = date.getFullYear();
+  const m = `${date.getMonth() + 1}`.padStart(2, "0");
+  const d = `${date.getDate()}`.padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function parseReplyPlans(row) {
+  if (!row?.vendorReplyPlan) return [];
+  try {
+    const plans = JSON.parse(row.vendorReplyPlan);
+    return Array.isArray(plans) ? plans : [];
+  } catch {
+    return [];
+  }
+}
+
+function parsePmcPlans(row) {
+  if (!row?.pmcPlanJson) return [];
+  try {
+    const plans = JSON.parse(row.pmcPlanJson);
+    return Array.isArray(plans) ? plans : [];
+  } catch {
+    return [];
+  }
+}
+
+function statusType(status) {
+  if (status === "已完成") return "success";
+  if (status === "部分交付") return "warning";
+  return "info";
 }
 
 function formatPercent(val) {
@@ -194,19 +273,12 @@ function getMetrics() {
   getMyMetrics()
     .then((res) => {
       const data = res?.data || {};
-      qualitySummary.onTimeDeliveryRate = formatPercent(data.onTimeDeliveryRate);
-      qualitySummary.batchQualificationRate = formatPercent(data.batchQualificationRate);
-      const specialCount = data.totalSpecialProcurementBatchCount;
-      qualitySummary.totalSpecialProcurementBatchCount =
-        specialCount === null || specialCount === undefined || specialCount === ""
-          ? "--"
-          : String(specialCount);
+      onTimeDeliveryRate.value = formatPercent(data.onTimeDeliveryRate);
     })
     .catch(() => {
-      resetMetrics();
+      onTimeDeliveryRate.value = "--";
     });
 }
-
 
 function buildQuery() {
   const params = { ...queryParams };
@@ -225,11 +297,10 @@ function getList(refreshMetrics = false) {
     getMetrics();
   }
   loading.value = true;
-  getMyConfirmations(buildQuery())
+  getMyPurchaseOrders(buildQuery())
     .then((res) => {
       const data = res.data || {};
-      const list = data.list || [];
-      tableData.value = list;
+      tableData.value = data.list || [];
       total.value = Number(data.total || 0);
     })
     .catch((error) => {
@@ -257,20 +328,17 @@ function resetQuery() {
   getList(true);
 }
 
-
 onMounted(() => {
   getList(true);
 });
 </script>
 
 <style lang="scss" scoped>
-.quality-stats {
-  flex: 1;
+.delivery-metric {
   display: flex;
-  justify-content: flex-end;
   align-items: center;
-  gap: 16px;
-  padding-left: 24px;
+  margin-left: 12px;
+  padding-left: 16px;
   border-left: 1px solid #dcdfe6;
 
   &__item {
@@ -286,5 +354,87 @@ onMounted(() => {
       font-weight: 600;
     }
   }
+}
+
+.pending-qty {
+  color: #f56c6c;
+  font-weight: 700;
+}
+
+.no-date {
+  color: #e6a23c;
+  font-style: italic;
+}
+
+:deep(.pmc-plan-inline) {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+:deep(.pmc-plan-inline-item) {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  width: 180px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+:deep(.pmc-plan-date) {
+  color: #303133;
+  width: 115px;
+  text-align: left;
+}
+:deep(.pmc-plan-qty) {
+  color: #303133;
+  font-weight: 500;
+  flex: 1;
+  text-align: left;
+}
+:deep(.pmc-plan-single) {
+  display: inline-block;
+  width: 180px;
+  text-align: left;
+  color: #303133;
+  font-size: 13px;
+  line-height: 1.4;
+}
+:deep(.stat-num) {
+    color: #ccc;
+}
+
+.overdue-days {
+  color: #67c23a;
+  font-weight: 600;
+}
+
+.overdue-days.is-overdue {
+  color: #f56c6c;
+}
+
+:deep(.top-align-cell) {
+    vertical-align: top !important;
+}
+
+/* ====== 表头分区背景色 ====== */
+:deep(.hdr-order) {
+    background-color: #2980b9 !important;
+    color: #fff !important;
+}
+:deep(.hdr-delivery) {
+    background-color: #27ae60 !important;
+    color: #fff !important;
+}
+:deep(.hdr-demand) {
+    background-color: #e67e22 !important;
+    color: #fff !important;
+}
+:deep(.hdr-reply) {
+    background-color: #8e44ad !important;
+    color: #fff !important;
+}
+:deep(.hdr-status) {
+    background-color: #2c3e50 !important;
+    color: #fff !important;
 }
 </style>

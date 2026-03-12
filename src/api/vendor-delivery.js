@@ -1,5 +1,10 @@
 import request from '@/utils/request'
 
+export const DELIVERY_COMPLETED_FILTER = {
+  PENDING: false,
+  COMPLETED: true,
+}
+
 export function getMyPurchaseOrders(params) {
   return request({
     url: '/vendor/delivery/myPurchaseOrders',
@@ -19,6 +24,14 @@ export function submitDelivery(data) {
 export function getMyConfirmations(params) {
   return request({
     url: '/vendor/delivery/myConfirmations',
+    method: 'get',
+    params
+  })
+}
+
+export function getMyIncomingQuality(params) {
+  return request({
+    url: '/vendor/delivery/myIncomingQuality',
     method: 'get',
     params
   })
@@ -51,5 +64,20 @@ export function confirmReplyDate(data) {
     url: '/vendor/delivery/reply-date',
     method: 'post',
     data
+  })
+}
+
+export function getMyForecastList(params) {
+  return request({
+    url: '/vendor/orderForecast/myList',
+    method: 'get',
+    params
+  })
+}
+
+export function getMyForecastInfo(id) {
+  return request({
+    url: `/vendor/orderForecast/myInfo/${id}`,
+    method: 'get'
   })
 }

@@ -53,43 +53,49 @@
                 <el-table-column
                     prop="poCode"
                     label="采购订单号"
-                    min-width="160"
+                    min-width="100"
+                    label-class-name="hdr-order"
                 />
                 <el-table-column
                     prop="invCode"
                     label="物料编码"
-                    min-width="130"
+                    min-width="100"
+                    label-class-name="hdr-order"
                 />
                 <el-table-column
                     prop="quantity"
                     label="采购数量"
-                    min-width="100"
+                    min-width="80"
                     align="center"
+                    label-class-name="hdr-order"
                 />
                 <el-table-column
                     prop="deliveredQty"
                     label="供应商已送数量"
-                    min-width="110"
+                    min-width="80"
                     align="center"
+                    label-class-name="hdr-delivery"
                 />
                 <el-table-column
                     prop="remainingQty"
                     label="待交付数量"
-                    min-width="110"
+                    min-width="80"
                     align="center"
+                    label-class-name="hdr-delivery"
                 >
                     <template #default="{ row }">
                         <span class="pending-qty">{{ row.remainingQty }}</span>
                     </template>
                 </el-table-column>
                 <el-table-column
-                    prop="storageQty"
+                    prop="ireceivedqty"
                     label="迪太已入库数量"
-                    min-width="110"
+                    min-width="80"
                     align="center"
+                    label-class-name="hdr-delivery"
                 >
                     <template #default="{ row }">
-                        <span>{{ row.storageQty || 0 }}</span>
+                        <span>{{ row.ireceivedqty ?? row.storageQty ?? 0 }}</span>
                     </template>
                 </el-table-column>
                 <el-table-column
@@ -97,19 +103,21 @@
                     label="迪太要求到货日期"
                     min-width="220"
                     align="center"
+                    label-class-name="hdr-demand"
+                    class-name="top-align-cell"
                 >
                     <template #default="{ row }">
-                        <div v-if="row.pmcPlanType === 2 && parsePmcPlans(row).length > 0" class="pmc-plan-inline">
+                        <div v-if="parsePmcPlans(row).length > 0" class="pmc-plan-inline">
                             <div
                                 v-for="(plan, index) in parsePmcPlans(row)"
                                 :key="`pmc-${row.id}-${index}`"
                                 class="pmc-plan-inline-item"
                             >
-                                <span class="pmc-plan-date">{{ formatReplyPlanDate(plan.planDate) }}</span>
-                                <span class="pmc-plan-qty">（ {{ plan.deliveryQty }}）</span>
+                                <span class="pmc-plan-date">日期：<span class="stat-num">{{ formatReplyPlanDate(plan.planDate) }}</span></span>
+                                <span class="pmc-plan-qty">数量：<span class="stat-num">{{ plan.deliveryQty }}</span></span>
                             </div>
                         </div>
-                        <span v-else-if="row.planArriveDate">{{ row.planArriveDate }}</span>
+                        <span v-else-if="row.planArriveDate" class="pmc-plan-single">日期：<span class="stat-num">{{ row.planArriveDate }}</span></span>
                         <span v-else class="no-date">-</span>
                     </template>
                 </el-table-column>
@@ -118,27 +126,30 @@
                     label="供应商回复日期"
                     min-width="220"
                     align="center"
+                    label-class-name="hdr-demand"
+                    class-name="top-align-cell"
                 >
                     <template #default="{ row }">
                         <span v-if="!row.vendorReplyDate" class="no-date">-</span>
-                        <div v-else-if="row.vendorReplyType === 2 && parseReplyPlans(row).length > 0" class="pmc-plan-inline">
+                        <div v-else-if="parseReplyPlans(row).length > 0" class="pmc-plan-inline">
                             <div
                                 v-for="(plan, index) in parseReplyPlans(row)"
                                 :key="`reply-${row.id}-${index}`"
                                 class="pmc-plan-inline-item"
                             >
-                                <span class="pmc-plan-date">{{ formatReplyPlanDate(plan.replyDate) }}</span>
-                                <span class="pmc-plan-qty">（{{ plan.deliveryQty }}）</span>
+                                <span class="pmc-plan-date">日期：<span class="stat-num">{{ formatReplyPlanDate(plan.replyDate) }}</span></span>
+                                <span class="pmc-plan-qty">数量：<span class="stat-num">{{ plan.deliveryQty }}</span></span>
                             </div>
                         </div>
-                        <span v-else>{{ row.vendorReplyDate }}</span>
+                        <span v-else class="pmc-plan-single">日期：<span class="stat-num">{{ row.vendorReplyDate }}</span></span>
                     </template>
                 </el-table-column>
                 <el-table-column
                     prop="deliveryStatus"
                     label="交付状态"
-                    min-width="100"
+                    width="90"
                     align="center"
+                    label-class-name="hdr-reply"
                 >
                     <template #default="{ row }">
                         <el-tag
@@ -150,9 +161,10 @@
                 </el-table-column>
                 <el-table-column
                     label="操作"
-                    width="140"
+                    width="100"
                     fixed="right"
                     align="center"
+                    label-class-name="hdr-action"
                 >
                     <template #default="{ row }">
                         <el-button
@@ -370,6 +382,7 @@
 <script setup>
 import { ElMessage } from "element-plus";
 import {
+    DELIVERY_COMPLETED_FILTER,
     getMyPurchaseOrders,
     submitDelivery,
     confirmReplyDate,
@@ -378,6 +391,7 @@ import {
 const defaultQuery = {
     poCode: "",
     appCode: "",
+    isCompleted: DELIVERY_COMPLETED_FILTER.PENDING,
     beginTime: "",
     endTime: "",
     p: 1,
@@ -830,5 +844,67 @@ onMounted(() => {
 :deep(.reply-plan-dialog .el-date-editor.el-input),
 :deep(.reply-plan-dialog .el-input-number) {
     width: 100%;
+}
+/* ====== 表头分区背景色 ====== */
+:deep(.hdr-order) {
+    background-color: #2980b9 !important;
+    color: #fff !important;
+}
+:deep(.hdr-delivery) {
+    background-color: #27ae60 !important;
+    color: #fff !important;
+}
+:deep(.hdr-demand) {
+    background-color: #e67e22 !important;
+    color: #fff !important;
+}
+:deep(.hdr-reply) {
+    background-color: #8e44ad !important;
+    color: #fff !important;
+}
+:deep(.hdr-action) {
+    background-color: #7f8c8d !important;
+    color: #fff !important;
+}
+:deep(.top-align-cell) {
+    vertical-align: top !important;
+}
+
+
+:deep(.pmc-plan-inline) {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+}
+:deep(.pmc-plan-inline-item) {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    width: 180px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+:deep(.pmc-plan-date) {
+    color: #303133;
+    width: 115px;
+    text-align: left;
+}
+:deep(.pmc-plan-qty) {
+    color: #303133;
+    font-weight: 500;
+    flex: 1;
+    text-align: left;
+}
+:deep(.pmc-plan-single) {
+    display: inline-block;
+    width: 180px;
+    text-align: left;
+    color: #303133;
+    font-size: 13px;
+    line-height: 1.4;
+}
+:deep(.stat-num) {
+    color: #4b4a4a;
 }
 </style>
