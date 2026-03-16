@@ -21,12 +21,10 @@ function isInstallLocationError(error) {
 }
 
 function resolveManualDownloadUrl(updateUrl) {
-  const fallback = "https://bikewise.oss-cn-shenzhen.aliyuncs.com/d-space/supplier-desktop/darwin/D-Space.dmg"
+  const fallback = "https://bikewise.oss-cn-shenzhen.aliyuncs.com/d-space/supplier-desktop/darwin/D-Space.tar.gz"
   if (!updateUrl) return fallback
   try {
     const parsed = new URL(updateUrl)
-    const dir = parsed.pathname.replace(/\/[^/]*$/, "/")
-    parsed.pathname = `${dir}D-Space.dmg`
     parsed.search = ""
     parsed.hash = ""
     return parsed.toString()
@@ -102,12 +100,16 @@ export async function checkForAppUpdateWithPrompt() {
     console.error("[updater] check/update failed:", error)
     const message = buildUpdateErrorMessage(error)
     if (isInstallLocationError(error)) {
-      await ElMessageBox.confirm(`${message}\n\n是否立即手动下载安装包？`, "更新失败", {
-        confirmButtonText: "手动下载",
-        cancelButtonText: "取消",
-        type: "error",
-        closeOnClickModal: false,
-      })
+      await ElMessageBox.confirm(
+        `${message}\n\n是否立即手动下载安装包？\n\nmacOS 下载的是压缩包，解压后请将 D-Space.app 拖到 /Applications 再打开。`,
+        "更新失败",
+        {
+          confirmButtonText: "手动下载",
+          cancelButtonText: "取消",
+          type: "error",
+          closeOnClickModal: false,
+        }
+      )
       await openUrl(manualDownloadUrl)
       ElMessage.success("已打开下载链接，浏览器会保存到默认下载目录")
     } else {

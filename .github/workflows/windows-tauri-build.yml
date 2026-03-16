@@ -44,11 +44,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Disable frontend rebuild in CI (use committed dist)
-        shell: bash
-        run: |
-          node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));if(!j.build) j.build={};j.build.beforeBuildCommand='';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
-
       - name: Force NSIS only in CI
         shell: bash
         run: |

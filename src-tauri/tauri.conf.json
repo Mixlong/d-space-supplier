@@ -4,7 +4,7 @@
   "version": "1.0.2",
   "identifier": "com.digiwise.supplieradmin",
   "build": {
-    "frontendDist": "../dist",
+    "frontendDist": "../admin-supplier",
     "devUrl": "http://localhost:3003",
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build:prod"
