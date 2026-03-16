@@ -51,30 +51,30 @@ export const constantRoutes = [
     alwaysShow: true,
     meta: { title: "质量情况", icon: "DataAnalysis" },
     children: [
-      {
-        path: "specs-drawings",
-        component: () => import("@/views/supplier/quality/specs-drawings.vue"),
-        name: "SpecsDrawings",
-        meta: { title: "规格&图纸", icon: "Document" },
-      },
+      // {
+      //   path: "specs-drawings",
+      //   component: () => import("@/views/supplier/quality/specs-drawings.vue"),
+      //   name: "SpecsDrawings",
+      //   meta: { title: "规格&图纸", icon: "Document" },
+      // },
       {
         path: "incoming-quality",
         component: () => import("@/views/supplier/delivery/incoming-quality.vue"),
         name: "IncomingQuality",
         meta: { title: "来料质量", icon: "Histogram" },
       },
-      {
-        path: "process-quality",
-        component: () => import("@/views/supplier/quality/process-quality.vue"),
-        name: "ProcessQuality",
-        meta: { title: "制程质量", icon: "Setting" },
-      },
-      {
-        path: "after-sales-quality",
-        component: () => import("@/views/supplier/quality/after-sales-quality.vue"),
-        name: "AfterSalesQuality",
-        meta: { title: "售后质量", icon: "Service" },
-      },
+      // {
+      //   path: "process-quality",
+      //   component: () => import("@/views/supplier/quality/process-quality.vue"),
+      //   name: "ProcessQuality",
+      //   meta: { title: "制程质量", icon: "Setting" },
+      // },
+      // {
+      //   path: "after-sales-quality",
+      //   component: () => import("@/views/supplier/quality/after-sales-quality.vue"),
+      //   name: "AfterSalesQuality",
+      //   meta: { title: "售后质量", icon: "Service" },
+      // },
     ],
   },
   {

@@ -1,0 +1,135 @@
+#!/bin/bash
+
+# SSH脚本：本地构建并打包dist目录，传输到远程服务器部署（生产环境）
+# 项目名：FILECONF-UI
+# 作者：Cascade
+# 日期：$(date +%Y-%m-%d)
+
+set -e  # 遇到错误立即退出
+
+# 服务器配置（生产环境）
+SERVER="39.104.202.51"
+PASSWORD="5vhvO&3uW5jd"
+REMOTE_PATH="/opt/dist/dty/admin"
+# 自动获取当前目录作为项目路径
+LOCAL_PROJECT_PATH=$(pwd)
+# 从 package.json 中读取项目名称
+PROJECT_NAME=$(node -p "require('./package.json').name")
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+MONTH=$(date +%m)
+DAY=$(date +%d)
+BACKUP_NAME="admin-supplier_${MONTH}_${DAY}"
+ZIP_FILE="admin-supplier_${TIMESTAMP}.zip"
+
+echo "========================================="
+echo "开始执行项目构建和部署脚本（生产环境）"
+echo "时间: $(date)"
+echo "========================================="
+
+# 切换到项目目录
+cd "$LOCAL_PROJECT_PATH"
+echo "✓ 切换到项目目录: $LOCAL_PROJECT_PATH"
+
+# 本地构建项目（生产环境）
+echo "🏗️ 正在本地构建项目 (生产环境)..."
+npm run build:prod
+
+if [ $? -eq 0 ]; then
+    echo "✅ 本地构建完成"
+    
+    # 检查admin-supplier目录是否存在
+    if [ -d "admin-supplier" ]; then
+        echo "📁 构建产物目录："
+        ls -la admin-supplier/ | head -5
+        echo "..."
+    else
+        echo "❌ 未找到admin-supplier目录，构建可能失败"
+        exit 1
+    fi
+else
+    echo "❌ 本地构建失败，停止执行"
+    exit 1
+fi
+
+# 创建admin-supplier的ZIP压缩包
+echo "📦 正在打包admin-supplier目录..."
+cd admin-supplier
+zip -r "../$ZIP_FILE" .
+cd ..
+
+echo "✓ admin-supplier目录打包完成: $ZIP_FILE"
+
+# 检查ZIP文件大小
+FILE_SIZE=$(du -h "$ZIP_FILE" | cut -f1)
+echo "📁 压缩包大小: $FILE_SIZE"
+
+# 1. 先删除远程服务器上的旧admin-supplier.zip
+echo "🗑️ 正在删除远程服务器上的旧 $ZIP_FILE ..."
+if command -v sshpass >/dev/null 2>&1; then
+    sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no root@"$SERVER" "rm -f $REMOTE_PATH/$ZIP_FILE"
+    echo "✓ 远程旧 $ZIP_FILE 已删除"
+else
+    echo "❌ 错误: 未安装sshpass工具"
+    echo "请运行: brew install sshpass"
+    exit 1
+fi
+
+# 2. 使用sshpass和scp传输文件到远程服务器
+echo "🚀 正在传输文件到服务器..."
+if command -v sshpass >/dev/null 2>&1; then
+    sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no "$ZIP_FILE" root@"$SERVER":"$REMOTE_PATH/"
+    echo "✓ 文件传输完成"
+else
+    echo "❌ 错误: 未安装sshpass工具"
+    echo "请运行: brew install sshpass" 
+    echo "或者手动传输文件:"
+    echo "scp $ZIP_FILE root@$SERVER:$REMOTE_PATH/"
+    exit 1
+fi
+
+# 3. SSH到远程服务器，备份旧版本，再解压
+echo "📂 正在远程服务器部署..."
+sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no root@"$SERVER" << EOF
+    cd "$REMOTE_PATH"
+    echo "当前目录: \\$(pwd)"
+
+    # 备份现有的admin-supplier目录
+    if [ -d "admin-supplier" ]; then
+        echo "📋 正在备份现有admin-supplier目录为 $BACKUP_NAME ..."
+        mv admin-supplier "$BACKUP_NAME"
+        echo "✓ 备份完成: $BACKUP_NAME"
+    else
+        echo "ℹ️ 未找到现有admin-supplier目录，跳过备份"
+    fi
+
+    # 解压新的admin-supplier文件
+    if [ -f "$ZIP_FILE" ]; then
+        echo "📦 开始解压 $ZIP_FILE 到 admin-supplier 目录..."
+        mkdir -p admin-supplier
+        unzip -o "$ZIP_FILE" -d "admin-supplier/"
+        echo "✓ 解压完成到目录: admin-supplier/"
+        ls -la "admin-supplier/" | head -10
+        rm "$ZIP_FILE"
+        echo "🗑️ 已删除压缩包"
+    else
+        echo "❌ 错误: 未找到文件 $ZIP_FILE"
+        exit 1
+    fi
+EOF
+
+echo "✅ 所有操作完成！"
+echo "========================================="
+echo "项目已成功部署到生产服务器："
+echo "服务器: $SERVER"
+echo "部署路径: $REMOTE_PATH/admin-supplier/"
+echo "备份目录: $REMOTE_PATH/$BACKUP_NAME/"
+echo "构建方式: 本地构建 (npm run build:prod)"
+echo "部署时间: $(date)"
+echo "========================================="
+
+# 清理本地ZIP文件
+echo
+rm "$ZIP_FILE"
+echo "✓ 已删除本地压缩包"
+
+echo "🎉 生产环境部署完成！admin-supplier目录已更新到最新版本！"
