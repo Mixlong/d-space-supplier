@@ -49,7 +49,7 @@
           <template #default="{ row }">
             <div v-if="auditRemarks[idOf(row)]?.length" class="audit-remark">
               <div v-for="item in auditRemarks[idOf(row)]" :key="item.node" class="audit-remark__item" :class="item.type">
-                <span class="audit-remark__node">{{ item.node }}</span>
+                <span class="audit-remark__node">{{ item.node }}：</span>
                 <span>{{ item.remark }}</span>
               </div>
             </div>

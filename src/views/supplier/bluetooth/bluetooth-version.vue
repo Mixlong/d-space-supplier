@@ -27,6 +27,11 @@
                     </el-tag>
                   </template>
                 </el-table-column>
+                <el-table-column prop="disableRemark" label="备注" min-width="220" align="left">
+                  <template #default="{ row: subRow }">
+                    <div class="disable-remark-text">{{ formatDisableRemark(subRow) }}</div>
+                  </template>
+                </el-table-column>
                 <el-table-column prop="createTime" label="创建时间" width="165" align="center" />
                 <el-table-column prop="publishTime" label="发布时间" width="165" align="center" />
                 <el-table-column label="操作" width="180" fixed="right" align="center">
@@ -58,6 +63,11 @@
             <el-tag size="small" :type="isFirmwareDisabled(row) ? 'danger' : 'success'">
               {{ isFirmwareDisabled(row) ? '禁用' : '启用' }}
             </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="disableRemark" label="备注" min-width="240" align="left">
+          <template #default="{ row }">
+            <div class="disable-remark-text">{{ formatDisableRemark(row) }}</div>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="170" align="center" />
@@ -211,6 +221,7 @@ function unwrap(res) { return res?.data ?? res ?? {} }
 function listData(res) { const data = unwrap(res); return { list: data.list || data.records || [], total: Number(data.total || 0) } }
 function firmwareIdOf(row) { return row.id ?? row.firmwareId ?? row.bluetoothFirmwareId }
 function isFirmwareDisabled(row) { return Number(row?.status) === 1 }
+function formatDisableRemark(row) { return String(row?.disableRemark || '').trim() || '-' }
 function getFirmwareRowClass({ row }) {
   return Array.isArray(row?.firmwareList) && row.firmwareList.length > 1 ? '' : 'no-firmware-history'
 }
@@ -237,7 +248,7 @@ function getHeaderCellStyle({ column, columnIndex }) {
     return { background: '#27ae60', color: '#ffffff', fontWeight: 600 }
   }
 
-  if (['状态'].includes(label)) {
+  if (['状态', '备注'].includes(label)) {
     return { background: '#8e44ad', color: '#ffffff', fontWeight: 600 }
   }
 
@@ -412,6 +423,15 @@ function resetQuery() {
 .delivery-page-table {
   flex: 1;
   min-height: 0;
+}
+
+.disable-remark-text {
+  width: 100%;
+  text-align: left !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.5;
 }
 
 :deep(.el-table__empty-block) {
