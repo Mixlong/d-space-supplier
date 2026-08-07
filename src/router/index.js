@@ -6,7 +6,7 @@ export const constantRoutes = [
   {
     path: "/",
     component: Layout,
-    redirect: "/supplier/delivery/my-purchase-orders",
+    redirect: "/bluetooth/version",
     hidden: true,
     children: [
       {
@@ -22,6 +22,7 @@ export const constantRoutes = [
     path: "/supplier",
     component: Layout,
     redirect: "/supplier/delivery/my-purchase-orders",
+    hidden: true,
     meta: { title: "订单交付", icon: "OfficeBuilding" },
     children: [
       {
@@ -48,6 +49,7 @@ export const constantRoutes = [
     path: "/assessment",
     component: Layout,
     redirect: "/assessment/specs-drawings",
+    hidden: true,
     alwaysShow: true,
     meta: { title: "质量情况", icon: "DataAnalysis" },
     children: [
@@ -78,9 +80,30 @@ export const constantRoutes = [
     ],
   },
   {
+    path: "/bluetooth",
+    component: Layout,
+    redirect: "/bluetooth/version",
+    meta: { title: "蓝牙管理", icon: "Cpu" },
+    children: [
+      {
+        path: "version",
+        component: () => import("@/views/supplier/bluetooth/bluetooth-version.vue"),
+        name: "BluetoothVersion",
+        meta: { title: "正式版本", icon: "Connection" },
+      },
+      {
+        path: "records",
+        component: () => import("@/views/supplier/bluetooth/bluetooth-records.vue"),
+        name: "BluetoothRecords",
+        meta: { title: "申请记录", icon: "Tickets" },
+      },
+    ],
+  },
+  {
     path: "/timeliness",
     component: Layout,
     redirect: "/timeliness/index",
+    hidden: true,
     meta: { title: "季度考核", icon: "DataLine" },
     children: [
       {

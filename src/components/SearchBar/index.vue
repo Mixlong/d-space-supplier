@@ -5,6 +5,8 @@
       <el-form-item class="search-bar__actions">
         <el-button type="primary" :icon="Search" @click="$emit('search')">查询</el-button>
         <el-button :icon="Refresh" @click="$emit('reset')">重置</el-button>
+      </el-form-item>
+      <el-form-item class="search-bar__extra">
         <slot name="extra-actions" />
       </el-form-item>
     </el-form>
@@ -42,7 +44,6 @@ defineEmits(['search', 'reset'])
       margin-bottom: 0;
     }
 
-
     :deep(.el-form-item__label) {
       font-weight: 500;
       color: #606266;
@@ -57,6 +58,14 @@ defineEmits(['search', 'reset'])
 
   &__actions {
     margin-left: 0;
+
+    .el-button {
+      font-weight: 500;
+    }
+  }
+
+  &__extra {
+    margin-left: auto;
 
     .el-button {
       font-weight: 500;

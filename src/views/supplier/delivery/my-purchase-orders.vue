@@ -5,22 +5,6 @@
             @search="handleQuery"
             @reset="resetQuery"
         >
-            <el-form-item label="采购订单号">
-                <el-input
-                    v-model="queryParams.poCode"
-                    placeholder="请输入采购订单号"
-                    clearable
-                    style="width: 200px"
-                />
-            </el-form-item>
-            <el-form-item label="请购单号">
-                <el-input
-                    v-model="queryParams.appCode"
-                    placeholder="请输入请购单号"
-                    clearable
-                    style="width: 200px"
-                />
-            </el-form-item>
             <el-form-item label="时间范围">
                 <el-date-picker
                     v-model="dateRange"
@@ -33,7 +17,6 @@
                 />
             </el-form-item>
         </search-bar>
-
         <page-table
             class="delivery-page-table"
             :total="total"
@@ -50,18 +33,91 @@
                 align="center"
                 header-align="center"
             >
+                <el-table-column label="序号" width="65" align="center" label-class-name="hdr-order">
+                    <template #default="{ $index }">
+                        {{ (queryParams.p - 1) * queryParams.l + $index + 1 }}
+                    </template>
+                </el-table-column>
                 <el-table-column
                     prop="poCode"
                     label="采购订单号"
-                    min-width="100"
+                    min-width="180"
+                    class-name="nowrap-cell"
                     label-class-name="hdr-order"
-                />
+                >
+                    <template #header>
+                        <el-popover
+                            v-model:visible="columnFilterVisible.poCode"
+                            placement="bottom"
+                            :width="280"
+                            trigger="click"
+                        >
+                            <template #reference>
+                                <div class="column-filter-trigger" :class="{ 'is-active': !!queryParams.poCode }">
+                                    <span>采购订单号</span>
+                                    <el-icon
+                                        class="column-filter-trigger__icon"
+                                        :class="{ 'is-active': !!queryParams.poCode }"
+                                    >
+                                        <Filter />
+                                    </el-icon>
+                                </div>
+                            </template>
+                            <div class="column-filter-popover">
+                                <el-input
+                                    v-model="queryParams.poCode"
+                                    placeholder="请输入采购单号"
+                                    clearable
+                                    @keyup.enter="applyColumnFilter('poCode')"
+                                />
+                                <div class="column-filter-popover__footer">
+                                    <el-button type="primary" text @click="applyColumnFilter('poCode')">筛选</el-button>
+                                    <el-button text @click="resetColumnFilter('poCode')">重置</el-button>
+                                </div>
+                            </div>
+                        </el-popover>
+                    </template>
+                </el-table-column>
                 <el-table-column
                     prop="invCode"
-                    label="物料编码"
-                    min-width="100"
+                    label="物料编号"
+                    min-width="150"
+                    class-name="nowrap-cell"
                     label-class-name="hdr-order"
-                />
+                >
+                    <template #header>
+                        <el-popover
+                            v-model:visible="columnFilterVisible.invCode"
+                            placement="bottom"
+                            :width="280"
+                            trigger="click"
+                        >
+                            <template #reference>
+                                <div class="column-filter-trigger" :class="{ 'is-active': !!queryParams.invCode }">
+                                    <span>物料编号</span>
+                                    <el-icon
+                                        class="column-filter-trigger__icon"
+                                        :class="{ 'is-active': !!queryParams.invCode }"
+                                    >
+                                        <Filter />
+                                    </el-icon>
+                                </div>
+                            </template>
+                            <div class="column-filter-popover">
+                                <el-input
+                                    v-model="queryParams.invCode"
+                                    placeholder="请输入物料编号"
+                                    clearable
+                                    @keyup.enter="applyColumnFilter('invCode')"
+                                />
+                                <div class="column-filter-popover__footer">
+                                    <el-button type="primary" text @click="applyColumnFilter('invCode')">筛选</el-button>
+                                    <el-button text @click="resetColumnFilter('invCode')">重置</el-button>
+                                </div>
+                            </div>
+                        </el-popover>
+                    </template>
+                </el-table-column>
                 <el-table-column
                     prop="quantity"
                     label="采购数量"
@@ -72,14 +128,14 @@
                 <el-table-column
                     prop="deliveredQty"
                     label="供应商已送数量"
-                    min-width="80"
+                   width="110"
                     align="center"
                     label-class-name="hdr-delivery"
                 />
                 <el-table-column
                     prop="remainingQty"
                     label="待交付数量"
-                    min-width="80"
+                    width="100"
                     align="center"
                     label-class-name="hdr-delivery"
                 >
@@ -90,7 +146,7 @@
                 <el-table-column
                     prop="ireceivedqty"
                     label="迪太已入库数量"
-                    min-width="80"
+                    width="110"
                     align="center"
                     label-class-name="hdr-delivery"
                 >
@@ -145,12 +201,74 @@
                     </template>
                 </el-table-column>
                 <el-table-column
+                    prop="deliveryConfirmationList"
+                    label="实际送货日期"
+                    min-width="220"
+                    align="center"
+                    label-class-name="hdr-demand"
+                    class-name="top-align-cell"
+                >
+                    <template #default="{ row }">
+                        <span
+                            v-if="parseDeliveryConfirmations(row).length === 0"
+                            class="no-date"
+                        >-</span>
+                        <div v-else class="pmc-plan-inline">
+                            <div
+                                v-for="(item, index) in parseDeliveryConfirmations(row)"
+                                :key="`delivery-${row.id}-${index}`"
+                                class="pmc-plan-inline-item"
+                            >
+                                <span class="pmc-plan-date">日期：<span class="stat-num">{{ formatReplyPlanDate(item.actualDeliveryDate) }}</span></span>
+                                <span class="pmc-plan-qty">数量：<span class="stat-num">{{ item.deliveryQty ?? 0 }}</span></span>
+                            </div>
+                        </div>
+                    </template>
+                </el-table-column>
+                <el-table-column
                     prop="deliveryStatus"
                     label="交付状态"
-                    width="90"
+                    width="120"
                     align="center"
                     label-class-name="hdr-reply"
                 >
+                    <template #header>
+                        <el-popover
+                            v-model:visible="columnFilterVisible.deliveryStatus"
+                            placement="bottom"
+                            :width="240"
+                            trigger="click"
+                        >
+                            <template #reference>
+                                <div class="column-filter-trigger" :class="{ 'is-active': !!queryParams.deliveryStatus }">
+                                    <span>交付状态</span>
+                                    <el-icon
+                                        class="column-filter-trigger__icon"
+                                        :class="{ 'is-active': !!queryParams.deliveryStatus }"
+                                    >
+                                        <Filter />
+                                    </el-icon>
+                                </div>
+                            </template>
+                            <div class="column-filter-popover">
+                                <el-select
+                                    v-model="queryParams.deliveryStatus"
+                                    clearable
+                                    placeholder="请选择交付状态"
+                                    :teleported="false"
+                                    style="width: 100%"
+                                >
+                                    <el-option label="未交付" value="未交付" />
+                                    <el-option label="部分交付" value="部分交付" />
+                                    <el-option label="已完成" value="已完成" />
+                                </el-select>
+                                <div class="column-filter-popover__footer">
+                                    <el-button type="primary" text @click="applyColumnFilter('deliveryStatus')">筛选</el-button>
+                                    <el-button text @click="resetColumnFilter('deliveryStatus')">重置</el-button>
+                                </div>
+                            </div>
+                        </el-popover>
+                    </template>
                     <template #default="{ row }">
                         <el-tag
                             :type="statusType(row.deliveryStatus)"
@@ -161,26 +279,34 @@
                 </el-table-column>
                 <el-table-column
                     label="操作"
-                    width="100"
+                    width="140"
                     fixed="right"
                     align="center"
                     label-class-name="hdr-action"
                 >
                     <template #default="{ row }">
-                        <el-button
-                            v-if="!row.vendorReplyDate"
-                            link
-                            type="warning"
-                            @click="openReplyDateDialog(row)"
-                            >回复日期</el-button
-                        >
-                        <el-button
-                            v-else-if="canSubmitDelivery(row)"
-                            link
-                            type="primary"
-                            @click="openSubmitDialog(row)"
-                            >提交交付</el-button
-                        >
+                        <div class="action-stack">
+                            <el-button
+                                v-if="!row.vendorReplyDate"
+                                link
+                                type="warning"
+                                @click="openReplyDateDialog(row)"
+                                >回复日期</el-button
+                            >
+                            <el-button
+                                v-else-if="canSubmitDelivery(row)"
+                                link
+                                type="primary"
+                                @click="openSubmitDialog(row)"
+                                >提交交付</el-button
+                            >
+                            <el-button
+                                link
+                                type="success"
+                                @click="openBatchLabelDialog(row)"
+                                >批次号</el-button
+                            >
+                        </div>
                     </template>
                 </el-table-column>
             </el-table>
@@ -376,21 +502,99 @@
             </template>
         </el-dialog>
 
+        <el-dialog
+            v-model="batchLabelDialogVisible"
+            title="批次号标签"
+            width="1320px"
+            destroy-on-close
+            class="batch-label-dialog"
+        >
+            <div v-loading="batchLabelFetching" class="batch-label-dialog__body">
+                <div class="batch-label-preview-wrap">
+                    <div ref="batchLabelPreviewRef" class="batch-label-sheet">
+                        <div class="batch-label-layout">
+                            <div class="batch-label-main">
+                                <div
+                                    v-for="field in batchLabelFields"
+                                    :key="field.key"
+                                    class="batch-label-row"
+                                >
+                                    <div class="batch-label-row__label">{{ field.label }}</div>
+                                    <div class="batch-label-row__value">
+                                        <input
+                                            v-model="batchLabelForm[field.key]"
+                                            class="batch-label-cell-input"
+                                            type="text"
+                                            :placeholder="batchLabelPlaceholders[field.key] || ''"
+                                            :disabled="!batchLabelEditableFields.has(field.key)"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="batch-label-side">
+                                <div class="batch-label-side__title">批次号</div>
+                                <div class="batch-label-side__body">
+                                    <div class="batch-label-qr-card">
+                                        <img
+                                            v-if="batchQrDataUrl"
+                                            :src="batchQrDataUrl"
+                                            alt="批次号二维码"
+                                            class="batch-label-qr-card__image"
+                                        />
+                                        <div v-else class="batch-label-qr-card__placeholder">
+                                            请输入批次号
+                                        </div>
+                                        <div class="batch-label-qr-card__code">
+                                            <input
+                                                v-if="!batchLabelCapturing"
+                                                v-model="batchLabelForm.batchNo"
+                                                class="batch-label-qr-card__code-input"
+                                                type="text"
+                                                placeholder="请输入"
+                                                @input="handleBatchNoInput"
+                                            />
+                                            <div v-else class="batch-label-qr-card__code-export">
+                                                {{ batchLabelForm.batchNo }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <template #footer>
+                <el-button @click="batchLabelDialogVisible = false">取消</el-button>
+                <el-button
+                    type="primary"
+                    :loading="batchLabelSaving"
+                    @click="saveBatchLabel"
+                    >保存</el-button
+                >
+            </template>
+        </el-dialog>
+
     </div>
 </template>
 
 <script setup>
+import { Filter } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
+import QRCode from "qrcode";
 import {
     DELIVERY_COMPLETED_FILTER,
     getMyPurchaseOrders,
     submitDelivery,
     confirmReplyDate,
+    getDeliveryLabel,
+    saveDeliveryLabel,
 } from "@/api/vendor-delivery";
 
 const defaultQuery = {
     poCode: "",
-    appCode: "",
+    invCode: "",
+    deliveryStatus: "",
     isCompleted: DELIVERY_COMPLETED_FILTER.PENDING,
     beginTime: "",
     endTime: "",
@@ -403,6 +607,11 @@ const total = ref(0);
 const tableData = ref([]);
 const dateRange = ref([]);
 const queryParams = reactive({ ...defaultQuery });
+const columnFilterVisible = reactive({
+    poCode: false,
+    invCode: false,
+    deliveryStatus: false,
+});
 
 // 提交交付相关
 const dialogVisible = ref(false);
@@ -438,6 +647,44 @@ const replyDateRules = {
         { required: true, message: "请选择回复类型", trigger: "change" },
     ],
 };
+
+const batchLabelDialogVisible = ref(false);
+const batchLabelSaving = ref(false);
+const batchLabelFetching = ref(false);
+const batchLabelCapturing = ref(false);
+const batchLabelPreviewRef = ref(null);
+const batchQrDataUrl = ref("");
+const BATCH_LABEL_CUSTOMER_NAME = "深圳迪太科技";
+const batchLabelForm = reactive({
+    poId: undefined,
+    batchNo: "",
+    supplierName: "",
+    customerName: BATCH_LABEL_CUSTOMER_NAME,
+    poCode: "",
+    invCode: "",
+    invName: "",
+    specification: "",
+    quantity: "",
+    model: "",
+    date: "",
+});
+const batchLabelFields = [
+    { label: "供应商名称", key: "supplierName" },
+    { label: "客户名称", key: "customerName" },
+    { label: "采购单号", key: "poCode" },
+    { label: "物料编号", key: "invCode" },
+    { label: "物料名称", key: "invName" },
+    { label: "规格", key: "specification" },
+    { label: "数量", key: "quantity" },
+    { label: "机型", key: "model" },
+    { label: "日期", key: "date" },
+];
+const batchLabelPlaceholders = {
+    quantity: "请输入",
+    model: "请输入",
+    date: "请输入，如 2026-03-18",
+};
+const batchLabelEditableFields = new Set(["quantity", "model", "date"]);
 
 const maxQty = computed(() => {
     const val = Number(currentRow.value.remainingQty || 0);
@@ -488,6 +735,106 @@ function parsePmcPlans(row) {
     }
 }
 
+function parseDeliveryConfirmations(row) {
+    const list = row?.deliveryConfirmationList;
+    if (!list) return [];
+    if (Array.isArray(list)) return list;
+    if (typeof list === "string") {
+        try {
+            const parsed = JSON.parse(list);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }
+    return [];
+}
+
+function getRequestErrorMessage(error, fallback) {
+    return error?.response?.data?.msg || error?.message || fallback;
+}
+
+function isValidBatchLabelDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const [year, month, day] = value.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    return (
+        date.getFullYear() === year &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day
+    );
+}
+
+function buildBatchLabelDefaults(row) {
+    return {
+        poId: row?.id,
+        batchNo: "",
+        supplierName: row?.vendorName || row?.vendorCode || "",
+        customerName: BATCH_LABEL_CUSTOMER_NAME,
+        poCode: row?.poCode || "",
+        invCode: row?.invCode || "",
+        invName: row?.invName || row?.inventoryName || "",
+        specification: row?.specification || row?.spec || row?.invStd || "",
+        quantity: "",
+        model: "",
+        date: "",
+    };
+}
+
+function applyBatchLabelDetail(detail = {}, defaults = {}) {
+    Object.assign(batchLabelForm, {
+        ...defaults,
+        supplierName: detail.vendorName || defaults.supplierName || "",
+        customerName: BATCH_LABEL_CUSTOMER_NAME,
+        poCode: detail.poCode || defaults.poCode || "",
+        invCode: detail.invCode || defaults.invCode || "",
+        invName: detail.invName || defaults.invName || "",
+        specification: detail.specification || defaults.specification || "",
+        quantity: detail.labelQuantity ?? defaults.quantity ?? "",
+        model: detail.labelModel || defaults.model || "",
+        date: detail.labelDate || defaults.date || "",
+        batchNo: detail.labelBatchNo || defaults.batchNo || "",
+    });
+}
+
+async function loadBatchLabelDetail(row, options = {}) {
+    const { silent = false } = options;
+    const defaults = buildBatchLabelDefaults(row);
+    applyBatchLabelDetail({}, defaults);
+    batchLabelFetching.value = true;
+    try {
+        const res = await getDeliveryLabel({ poId: row.id });
+        applyBatchLabelDetail(res?.data || {}, defaults);
+    } catch (error) {
+        if (!silent) {
+            ElMessage.warning(
+                getRequestErrorMessage(error, "标签信息加载失败，已使用默认数据")
+            );
+        }
+    } finally {
+        batchLabelFetching.value = false;
+    }
+    await nextTick();
+    await renderBatchQrCode();
+}
+
+async function renderBatchQrCode() {
+    const text = (batchLabelForm.batchNo || "").trim();
+    if (!text) {
+        batchQrDataUrl.value = "";
+        return;
+    }
+    try {
+        batchQrDataUrl.value = await QRCode.toDataURL(text, {
+            margin: 1,
+            width: 320,
+        });
+    } catch {
+        batchQrDataUrl.value = "";
+        ElMessage.error("二维码生成失败，请稍后重试");
+    }
+}
+
 function buildQuery() {
     const params = { ...queryParams };
     if (dateRange.value?.length === 2) {
@@ -527,6 +874,17 @@ function handleQuery() {
     getList();
 }
 
+function applyColumnFilter(key) {
+    columnFilterVisible[key] = false;
+    handleQuery();
+}
+
+function resetColumnFilter(key) {
+    queryParams[key] = "";
+    columnFilterVisible[key] = false;
+    handleQuery();
+}
+
 function resetQuery() {
     Object.assign(queryParams, defaultQuery);
     dateRange.value = [];
@@ -561,6 +919,45 @@ function openReplyDateDialog(row) {
         replyPlanList: [{ replyDate: "", deliveryQty: undefined }],
     });
     replyDateDialogVisible.value = true;
+}
+
+async function openBatchLabelDialog(row) {
+    currentRow.value = row;
+    batchLabelDialogVisible.value = true;
+    await loadBatchLabelDetail(row);
+}
+
+function handleBatchNoInput() {
+    renderBatchQrCode();
+}
+
+function validateBatchLabelForm() {
+    if (!batchLabelForm.poId) {
+        ElMessage.warning("采购订单行ID不能为空");
+        return false;
+    }
+    if (!String(batchLabelForm.model || "").trim()) {
+        ElMessage.warning("机型不能为空");
+        return false;
+    }
+    if (!String(batchLabelForm.date || "").trim()) {
+        ElMessage.warning("标签日期不能为空");
+        return false;
+    }
+    if (!isValidBatchLabelDate(String(batchLabelForm.date || "").trim())) {
+        ElMessage.warning("标签日期格式不正确，请按 2026-03-18 格式填写");
+        return false;
+    }
+    const qty = Number(batchLabelForm.quantity);
+    if (!Number.isFinite(qty) || qty <= 0) {
+        ElMessage.warning("标签数量必须大于0");
+        return false;
+    }
+    if (!String(batchLabelForm.batchNo || "").trim()) {
+        ElMessage.warning("批次号不能为空");
+        return false;
+    }
+    return true;
 }
 
 function createEmptyReplyPlan() {
@@ -659,6 +1056,35 @@ function handleSubmit() {
     });
 }
 
+async function saveBatchLabel() {
+    if (!validateBatchLabelForm()) {
+        return;
+    }
+    if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+    }
+    batchLabelSaving.value = true;
+    try {
+        await saveDeliveryLabel({
+            poId: batchLabelForm.poId,
+            labelModel: String(batchLabelForm.model || "").trim(),
+            labelDate: String(batchLabelForm.date || "").trim(),
+            labelQuantity: Number(batchLabelForm.quantity),
+            labelBatchNo: String(batchLabelForm.batchNo || "").trim(),
+        });
+        if (currentRow.value?.id) {
+            await loadBatchLabelDetail(currentRow.value, { silent: true });
+        } else {
+            await renderBatchQrCode();
+        }
+        ElMessage.success("标签信息保存成功");
+    } catch (error) {
+        ElMessage.error(getRequestErrorMessage(error, "标签信息保存失败，请稍后重试"));
+    } finally {
+        batchLabelSaving.value = false;
+    }
+}
+
 function canSubmitDelivery(row) {
     return row?.deliveryStatus !== "已完成";
 }
@@ -669,6 +1095,11 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.action-stack {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 2px;
+}
 .pending-qty {
     color: #f56c6c;
     font-weight: 700;
@@ -845,6 +1276,263 @@ onMounted(() => {
 :deep(.reply-plan-dialog .el-input-number) {
     width: 100%;
 }
+:deep(.batch-label-dialog .el-dialog) {
+    border-radius: 12px;
+}
+:deep(.batch-label-dialog .el-dialog__body) {
+    padding: 16px 20px 8px;
+}
+.batch-label-dialog__body {
+    display: flex;
+    flex-direction: column;
+}
+.batch-label-preview-wrap {
+    overflow: auto;
+    padding: 12px;
+    background: #f5f7fa;
+    border-radius: 10px;
+}
+.batch-label-sheet {
+    width: 100%;
+    max-width: none;
+    margin: 0 auto;
+    padding: 18px;
+    background: #fff;
+    box-sizing: border-box;
+}
+.batch-label-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    align-items: stretch;
+}
+
+.batch-label-main {
+    border: 2px solid #333;
+    border-right: none;
+    background: #fff;
+}
+
+.batch-label-row {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    min-height: 68px;
+}
+
+.batch-label-row + .batch-label-row {
+    border-top: 2px solid #333;
+}
+
+.batch-label-row__label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 18px;
+    border-right: 2px solid #333;
+    background: #efefef;
+    color: #2a2a2a;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-align: center;
+}
+
+.batch-label-row__value {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 28px;
+    background: #fff;
+}
+
+.batch-label-side {
+    display: grid;
+    grid-template-rows: 68px 1fr;
+    border: 2px solid #333;
+    background: #fff;
+}
+
+.batch-label-side__title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 18px;
+    border-bottom: 2px solid #333;
+    background: #efefef;
+    color: #2a2a2a;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-align: center;
+}
+
+.batch-label-side__body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: 12px;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.batch-label-cell-input {
+    width: 100%;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #222;
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 40px;
+    letter-spacing: 0.01em;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.batch-label-cell-input:focus {
+    background: rgba(64, 158, 255, 0.08);
+}
+.batch-label-qr-card {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 12px 8px;
+    box-sizing: border-box;
+}
+.batch-label-qr-card__image {
+    width: min(100%, 340px);
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+}
+.batch-label-qr-card__placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(100%, 340px);
+    aspect-ratio: 1 / 1;
+    border: 2px dashed #c0c4cc;
+    color: #909399;
+    font-size: 15px;
+    box-sizing: border-box;
+}
+.batch-label-qr-card__code {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 2px solid #e4e7ed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+.batch-label-qr-card__code-input {
+    width: 100%;
+    min-height: 48px;
+    height: 48px;
+    padding: 0 12px;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #222;
+    display: block;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 48px;
+    letter-spacing: 0.01em;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.batch-label-qr-card__code-export {
+    width: 100%;
+    min-height: 48px;
+    height: 48px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #222;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    box-sizing: border-box;
+    word-break: break-all;
+}
+
+.batch-label-qr-card__code-input:focus {
+    background: rgba(64, 158, 255, 0.08);
+}
+.column-filter-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    gap: 8px;
+    white-space: nowrap;
+    flex-wrap: nowrap;
+}
+.column-filter-trigger > span {
+    color: #ffffff;
+    line-height: 1;
+    white-space: nowrap;
+}
+.column-filter-trigger__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    min-width: 26px;
+    min-height: 26px;
+    padding: 4px;
+    border-radius: 7px;
+    color: rgba(255, 255, 255, 0.96);
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+    transition: color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.column-filter-trigger__icon :deep(svg) {
+    width: 1em;
+    height: 1em;
+}
+.column-filter-trigger__icon:hover {
+    background: rgba(255, 255, 255, 0.28);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.34);
+    transform: translateY(-1px);
+}
+.column-filter-trigger__icon.is-active {
+    color: #ffd166;
+    background: rgba(255, 209, 102, 0.22);
+    box-shadow: inset 0 0 0 1px rgba(255, 209, 102, 0.42);
+}
+.column-filter-popover {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.column-filter-popover__footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+:deep(.nowrap-cell .cell) {
+    white-space: nowrap;
+    word-break: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 /* ====== 表头分区背景色 ====== */
 :deep(.hdr-order) {
     background-color: #2980b9 !important;
@@ -906,5 +1594,26 @@ onMounted(() => {
 }
 :deep(.stat-num) {
     color: #4b4a4a;
+}
+
+@media (max-width: 1200px) {
+    .batch-label-layout {
+        grid-template-columns: minmax(0, 1fr) 360px;
+    }
+
+    .batch-label-row {
+        grid-template-columns: 220px minmax(0, 1fr);
+    }
+
+    .batch-label-row__label,
+    .batch-label-side__title {
+        font-size: 16px;
+    }
+
+    .batch-label-cell-input,
+    .batch-label-qr-card__code-input,
+    .batch-label-qr-card__code-export {
+        font-size: 15px;
+    }
 }
 </style>

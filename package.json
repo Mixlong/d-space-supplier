@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "2.3.1",
+    "@monorepo/vue3-components": "workspace:*",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/plugin-autostart": "^2.5.1",
     "@tauri-apps/plugin-opener": "^2.5.3",
@@ -32,12 +33,18 @@
     "@vueuse/core": "13.3.0",
     "axios": "1.9.0",
     "element-plus": "2.9.9",
+    "file-saver": "2.0.5",
+    "html2canvas": "^1.4.1",
     "js-cookie": "3.0.5",
+    "jszip": "3.10.1",
     "nprogress": "0.2.0",
     "pinia": "3.0.2",
     "pinia-plugin-persistedstate": "^4.7.1",
+    "qrcode": "^1.5.4",
+    "sortablejs": "^1.15.0",
     "vue": "3.5.16",
-    "vue-router": "4.5.1"
+    "vue-router": "4.5.1",
+    "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.10.0",

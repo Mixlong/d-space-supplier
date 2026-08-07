@@ -18,9 +18,8 @@ const useUserStore = defineStore('user', {
       const username = userInfo.username.trim()
       const password = userInfo.password
       const code = userInfo.code
-      const uuid = userInfo.uuid
       return new Promise((resolve, reject) => {
-        login(username, password, code, uuid)
+        login(username, password, code)
           .then(res => {
             if (!res || Number(res.code) !== 200) {
               reject(new Error(res?.msg || '登录失败'))

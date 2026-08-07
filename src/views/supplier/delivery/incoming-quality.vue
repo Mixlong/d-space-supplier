@@ -134,39 +134,49 @@
         align="center"
         header-align="center"
       >
-        <el-table-column prop="purchaseOrderCode" label="采购单号" min-width="160" />
-        <el-table-column prop="invCode" label="物料编码" min-width="130" />
-        <el-table-column prop="invName" label="物料名称" min-width="140" />
-        <el-table-column prop="batchNo" label="批次号" min-width="120" />
+        <el-table-column label="序号" width="65" align="center" label-class-name="hdr-base">
+          <template #default="{ $index }">
+            {{ (queryParams.p - 1) * queryParams.l + $index + 1 }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="purchaseOrderCode" label="采购单号" min-width="160" label-class-name="hdr-base" />
+        <el-table-column prop="invCode" label="物料编码" min-width="130" label-class-name="hdr-base" />
+        <el-table-column prop="invName" label="物料名称" min-width="140" label-class-name="hdr-base" />
+        <el-table-column prop="batchNo" label="批次号" min-width="120" label-class-name="hdr-base" />
         <el-table-column
           prop="arrivalQuantity"
           label="来料数量"
           min-width="100"
           align="center"
+          label-class-name="hdr-inspection"
         />
         <el-table-column
           prop="samplingQuantity"
           label="检验数量"
           min-width="100"
           align="center"
+          label-class-name="hdr-inspection"
         />
         <el-table-column
           prop="defectiveQuantity"
           label="不良数量"
           min-width="100"
           align="center"
+          label-class-name="hdr-quality"
         />
         <el-table-column
           prop="defectiveRate"
           label="不良率"
           min-width="90"
           align="center"
+          label-class-name="hdr-quality"
         />
         <el-table-column
           prop="testResult"
           label="检验结果"
           min-width="90"
           align="center"
+          label-class-name="hdr-quality"
         >
           <template #default="{ row }">
             <el-tag :type="row.testResult === 'NG' ? 'danger' : 'success'" size="small">
@@ -179,6 +189,7 @@
           label="是否特采"
           min-width="90"
           align="center"
+          label-class-name="hdr-special"
         >
           <template #default="{ row }">
             <el-tag
@@ -194,6 +205,7 @@
           label="来料时间"
           min-width="170"
           align="center"
+          label-class-name="hdr-time"
         />
       </el-table>
     </page-table>
@@ -399,5 +411,30 @@ onMounted(() => {
       font-weight: 600;
     }
   }
+}
+
+:deep(.hdr-base) {
+  background-color: #2980b9 !important;
+  color: #fff !important;
+}
+
+:deep(.hdr-inspection) {
+  background-color: #27ae60 !important;
+  color: #fff !important;
+}
+
+:deep(.hdr-quality) {
+  background-color: #e67e22 !important;
+  color: #fff !important;
+}
+
+:deep(.hdr-special) {
+  background-color: #8e44ad !important;
+  color: #fff !important;
+}
+
+:deep(.hdr-time) {
+  background-color: #7f8c8d !important;
+  color: #fff !important;
 }
 </style>

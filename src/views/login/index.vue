@@ -5,6 +5,7 @@
       <section class="login-panel">
         <div class="brand">
           <img :src="logoMark" alt="logo" class="brand-logo" />
+          <div class="brand-subtitle">供应商管理平台</div>
         </div>
 
         <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form" @keyup.enter="handleLogin">
@@ -19,10 +20,17 @@
           </el-form-item>
 
           <el-form-item prop="code" class="field field-captcha">
-            <label>验证码</label>
+            <label>短信验证码</label>
             <div class="captcha-row">
-              <el-input v-model="loginForm.code" placeholder="请输入验证码" />
-              <img :src="captchaUrl" alt="captcha" class="captcha-img" @click="refreshCaptcha" @error="handleCaptchaError" />
+              <el-input v-model="loginForm.code" placeholder="请输入短信验证码" />
+              <el-button
+                class="send-code-btn"
+                :loading="smsSending"
+                :disabled="smsSending || countdown > 0 || !loginForm.username.trim()"
+                @click="handleSendCode"
+              >
+                {{ countdown > 0 ? `${countdown}s后重发` : '发送验证码' }}
+              </el-button>
             </div>
           </el-form-item>
 
@@ -41,7 +49,7 @@
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import useUserStore from '@/store/modules/user'
-import { getCaptcha } from '@/api/login'
+import { sendSmsCode } from '@/api/login'
 import logoMark from '@/assets/images/logo/logo.png'
 import loginBg from '@/assets/images/login/bg11.png'
 
@@ -50,59 +58,66 @@ const route = useRoute()
 const userStore = useUserStore()
 
 const loading = ref(false)
+const smsSending = ref(false)
 const loginRef = ref()
-const captchaUrl = ref('')
-const captchaLoading = ref(false)
-const captchaErrorRetryCount = ref(0)
+const countdown = ref(0)
 const rememberAccount = ref(true)
 const LOGIN_CACHE_KEY = 'supplier-admin-login-cache'
+let countdownTimer = null
 
 const loginForm = reactive({
   username: '',
   password: '',
   code: '',
-  uuid: '',
 })
 
 const loginRules = {
   username: [{ required: true, trigger: 'blur', message: '请输入账号' }],
   password: [{ required: true, trigger: 'blur', message: '请输入密码' }],
-  code: [{ required: true, trigger: 'blur', message: '请输入验证码' }],
+  code: [{ required: true, trigger: 'blur', message: '请输入短信验证码' }],
 }
 
-async function refreshCaptcha() {
-  if (captchaLoading.value) return
-  captchaLoading.value = true
+function clearCountdown() {
+  if (!countdownTimer) return
+  clearInterval(countdownTimer)
+  countdownTimer = null
+}
+
+function startCountdown(seconds = 60) {
+  clearCountdown()
+  countdown.value = seconds
+  countdownTimer = window.setInterval(() => {
+    if (countdown.value <= 1) {
+      clearCountdown()
+      countdown.value = 0
+      return
+    }
+    countdown.value -= 1
+  }, 1000)
+}
+
+async function handleSendCode() {
+  const username = loginForm.username.trim()
+  if (!username) {
+    ElMessage.warning('请先输入账号')
+    return
+  }
+  if (smsSending.value || countdown.value > 0) return
+
+  smsSending.value = true
   try {
-    const res = await getCaptcha()
-    const payload = (res && typeof res.data === 'object') ? res.data : res
-    const rawImg = String(payload?.img || payload?.image || '')
-      .replace(/\s+/g, '')
-    const rawUuid = String(payload?.uuid || '')
-
-    const isBase64Like = /^[A-Za-z0-9+/=]+$/.test(rawImg) && rawImg.length > 64
-
-    if (rawImg.startsWith('data:image/')) {
-      captchaUrl.value = rawImg
-    } else if (isBase64Like) {
-      let mime = 'image/png'
-      if (rawImg.startsWith('/9j/')) mime = 'image/jpeg'
-      else if (rawImg.startsWith('R0lGOD')) mime = 'image/gif'
-      else if (rawImg.startsWith('UklGR')) mime = 'image/webp'
-      captchaUrl.value = `data:${mime};base64,${rawImg}`
-    } else if (/^(https?:)?\/\//i.test(rawImg) || rawImg.startsWith('/')) {
-      captchaUrl.value = rawImg
-    } else {
-      captchaUrl.value = ''
+    const res = await sendSmsCode(username)
+    if (!res || Number(res.code) !== 200) {
+      throw new Error(res?.msg || '发送验证码失败')
     }
 
-    loginForm.uuid = rawUuid
-    captchaErrorRetryCount.value = 0
+    startCountdown()
+    const maskedPhone = String(res.phone || res.data?.phone || '').trim()
+    ElMessage.success(maskedPhone ? `验证码已发送至 ${maskedPhone}` : '验证码已发送')
   } catch (error) {
-    captchaUrl.value = ''
-    loginForm.uuid = ''
+    ElMessage.error(error?.message || error?.response?.data?.msg || '发送验证码失败')
   } finally {
-    captchaLoading.value = false
+    smsSending.value = false
   }
 }
 
@@ -139,11 +154,10 @@ function handleLogin() {
     try {
       await userStore.login(loginForm)
       persistLoginCache()
-      const redirect = route.query.redirect || '/supplier/delivery/my-purchase-orders'
+      const redirect = route.query.redirect || '/bluetooth/version'
       router.push(redirect)
     } catch (error) {
       ElMessage.error(error?.message || error?.response?.data?.msg || '登录失败，请检查账号密码')
-      refreshCaptcha()
       loginForm.code = ''
     } finally {
       loading.value = false
@@ -153,15 +167,11 @@ function handleLogin() {
 
 onMounted(() => {
   loadLoginCache()
-  refreshCaptcha()
 })
 
-function handleCaptchaError() {
-  if (captchaLoading.value) return
-  if (captchaErrorRetryCount.value >= 1) return
-  captchaErrorRetryCount.value += 1
-  refreshCaptcha()
-}
+onBeforeUnmount(() => {
+  clearCountdown()
+})
 </script>
 
 <style scoped lang="scss">
@@ -214,17 +224,27 @@ function handleCaptchaError() {
 }
 
 .brand {
-  margin: 0;
+  margin: 0 0 20px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-     margin-bottom: 20px;
 }
 
 .brand-logo {
   width: 114px;
   object-fit: contain;
   filter: drop-shadow(0 8px 20px rgba(40, 156, 255, 0.35));
+}
+
+.brand-subtitle {
+  margin-top: 8px;
+  color: #d8ecff;
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 8px rgba(1, 26, 71, 0.24);
 }
 
 .title {
@@ -261,17 +281,32 @@ function handleCaptchaError() {
 
 .captcha-row {
   display: grid;
-  grid-template-columns: 160px 80px;
+  grid-template-columns: minmax(0, 1fr) 96px;
   gap: 10px;
 }
 
-.captcha-img {
-  width: 80px;
+.send-code-btn {
+  width: 96px;
   height: var(--field-height);
   border-radius: 7px;
-  object-fit: cover;
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.92);
+  padding: 0;
+  font-size: 12px;
+  color: #ffffff;
+  border: none;
+  background: linear-gradient(90deg, #0f4f9c 0%, #053f88 100%);
+}
+
+.send-code-btn :deep(span) {
+  color: #ffffff;
+}
+
+.send-code-btn:disabled {
+  background: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.send-code-btn:disabled :deep(span) {
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .submit-btn {
@@ -304,7 +339,7 @@ function handleCaptchaError() {
   }
 
   .captcha-row {
-    grid-template-columns: minmax(0, 1fr) 80px;
+    grid-template-columns: minmax(0, 1fr) 96px;
   }
 }
 </style>

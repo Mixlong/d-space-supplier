@@ -6,26 +6,26 @@
           v-model="queryParams.poCode"
           placeholder="请输入采购订单号"
           clearable
+          @keyup.enter="handleQuery"
           style="width: 200px"
         />
       </el-form-item>
-      <el-form-item label="请购单号">
-        <el-input
-          v-model="queryParams.appCode"
-          placeholder="请输入请购单号"
-          clearable
-          style="width: 200px"
-        />
-      </el-form-item>
-      <el-form-item label="时间范围">
+      <el-form-item label="开始日期">
         <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
+          v-model="queryParams.beginTime"
+          type="date"
+          placeholder="请选择开始日期"
           value-format="YYYY-MM-DD"
-          style="width: 320px"
+          style="width: 160px"
+        />
+      </el-form-item>
+      <el-form-item label="结束日期">
+        <el-date-picker
+          v-model="queryParams.endTime"
+          type="date"
+          placeholder="请选择结束日期"
+          value-format="YYYY-MM-DD"
+          style="width: 160px"
         />
       </el-form-item>
       <template #extra-actions>
@@ -61,8 +61,89 @@
         align="center"
         header-align="center"
       >
-        <el-table-column prop="poCode" label="采购订单号" min-width="160" label-class-name="hdr-order" />
-        <el-table-column prop="invCode" label="物料编码" min-width="130" label-class-name="hdr-order" />
+        <el-table-column label="序号" width="65" align="center" label-class-name="hdr-order">
+          <template #default="{ $index }">
+            {{ (queryParams.p - 1) * queryParams.l + $index + 1 }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="poCode"
+          min-width="180"
+          class-name="nowrap-cell"
+          label-class-name="hdr-order"
+        >
+          <template #header>
+            <el-popover
+              v-model:visible="columnFilterVisible.poCode"
+              placement="bottom"
+              :width="280"
+              trigger="click"
+            >
+              <template #reference>
+                <div class="column-filter-trigger" :class="{ 'is-active': !!queryParams.poCode }">
+                  <span>采购订单号</span>
+                  <el-icon
+                    class="column-filter-trigger__icon"
+                    :class="{ 'is-active': !!queryParams.poCode }"
+                  >
+                    <Filter />
+                  </el-icon>
+                </div>
+              </template>
+              <div class="column-filter-popover">
+                <el-input
+                  v-model="queryParams.poCode"
+                  placeholder="请输入采购订单号"
+                  clearable
+                  @keyup.enter="applyColumnFilter('poCode')"
+                />
+                <div class="column-filter-popover__footer">
+                  <el-button type="primary" text @click="applyColumnFilter('poCode')">筛选</el-button>
+                  <el-button text @click="resetColumnFilter('poCode')">重置</el-button>
+                </div>
+              </div>
+            </el-popover>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="invCode"
+          min-width="150"
+          class-name="nowrap-cell"
+          label-class-name="hdr-order"
+        >
+          <template #header>
+            <el-popover
+              v-model:visible="columnFilterVisible.invCode"
+              placement="bottom"
+              :width="280"
+              trigger="click"
+            >
+              <template #reference>
+                <div class="column-filter-trigger" :class="{ 'is-active': !!queryParams.invCode }">
+                  <span>物料编码</span>
+                  <el-icon
+                    class="column-filter-trigger__icon"
+                    :class="{ 'is-active': !!queryParams.invCode }"
+                  >
+                    <Filter />
+                  </el-icon>
+                </div>
+              </template>
+              <div class="column-filter-popover">
+                <el-input
+                  v-model="queryParams.invCode"
+                  placeholder="请输入物料编码"
+                  clearable
+                  @keyup.enter="applyColumnFilter('invCode')"
+                />
+                <div class="column-filter-popover__footer">
+                  <el-button type="primary" text @click="applyColumnFilter('invCode')">筛选</el-button>
+                  <el-button text @click="resetColumnFilter('invCode')">重置</el-button>
+                </div>
+              </div>
+            </el-popover>
+          </template>
+        </el-table-column>
         <el-table-column
           prop="quantity"
           label="采购数量"
@@ -186,17 +267,17 @@
 </template>
 
 <script setup>
+import { Filter, TrendCharts } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
-import { TrendCharts } from "@element-plus/icons-vue";
 import {
   DELIVERY_COMPLETED_FILTER,
+  getMyConfirmations,
   getMyMetrics,
-  getMyPurchaseOrders,
 } from "@/api/vendor-delivery";
 
 const defaultQuery = {
   poCode: "",
-  appCode: "",
+  invCode: "",
   isCompleted: DELIVERY_COMPLETED_FILTER.COMPLETED,
   beginTime: "",
   endTime: "",
@@ -207,8 +288,11 @@ const defaultQuery = {
 const loading = ref(false);
 const total = ref(0);
 const tableData = ref([]);
-const dateRange = ref([]);
 const queryParams = reactive({ ...defaultQuery });
+const columnFilterVisible = reactive({
+  poCode: false,
+  invCode: false,
+});
 const onTimeDeliveryRate = ref("--");
 
 function formatReplyPlanDate(value) {
@@ -281,15 +365,7 @@ function getMetrics() {
 }
 
 function buildQuery() {
-  const params = { ...queryParams };
-  if (dateRange.value?.length === 2) {
-    params.beginTime = dateRange.value[0];
-    params.endTime = dateRange.value[1];
-  } else {
-    params.beginTime = "";
-    params.endTime = "";
-  }
-  return params;
+  return { ...queryParams };
 }
 
 function getList(refreshMetrics = false) {
@@ -297,7 +373,7 @@ function getList(refreshMetrics = false) {
     getMetrics();
   }
   loading.value = true;
-  getMyPurchaseOrders(buildQuery())
+  getMyConfirmations(buildQuery())
     .then((res) => {
       const data = res.data || {};
       tableData.value = data.list || [];
@@ -322,9 +398,19 @@ function handleQuery() {
   getList(true);
 }
 
+function applyColumnFilter(key) {
+  columnFilterVisible[key] = false;
+  handleQuery();
+}
+
+function resetColumnFilter(key) {
+  queryParams[key] = "";
+  columnFilterVisible[key] = false;
+  handleQuery();
+}
+
 function resetQuery() {
   Object.assign(queryParams, defaultQuery);
-  dateRange.value = [];
   getList(true);
 }
 
@@ -410,6 +496,74 @@ onMounted(() => {
 
 .overdue-days.is-overdue {
   color: #f56c6c;
+}
+
+.column-filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 8px;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
+.column-filter-trigger > span {
+  color: #ffffff;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.column-filter-trigger__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  min-height: 26px;
+  padding: 4px;
+  border-radius: 7px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+  transition: color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.column-filter-trigger__icon :deep(svg) {
+  width: 1em;
+  height: 1em;
+}
+
+.column-filter-trigger__icon:hover {
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.34);
+  transform: translateY(-1px);
+}
+
+.column-filter-trigger__icon.is-active {
+  color: #ffd166;
+  background: rgba(255, 209, 102, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(255, 209, 102, 0.42);
+}
+
+.column-filter-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.column-filter-popover__footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+:deep(.nowrap-cell .cell) {
+  white-space: nowrap;
+  word-break: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 :deep(.top-align-cell) {

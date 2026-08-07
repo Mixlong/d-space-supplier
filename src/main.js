@@ -15,6 +15,8 @@ import plugins from "./plugins"
 
 import SearchBar from "@/components/SearchBar/index.vue"
 import PageTable from "@/components/PageTable/index.vue"
+import FileUpload from "@monorepo/vue3-components/FileUpload"
+import request from "@/utils/request"
 import { checkForAppUpdateWithPrompt } from "./updater"
 import { ensureAutoStartEnabled } from "./autostart"
 
@@ -37,6 +39,7 @@ app.use(ElementPlus, {
 
 app.component("SearchBar", SearchBar)
 app.component("PageTable", PageTable)
+app.component("FileUpload", FileUpload)
 
 app.mount("#app")
 

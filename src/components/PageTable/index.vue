@@ -108,7 +108,7 @@ function handlePageChange() {
       flex: 1;
       height: 100%;
       min-height: 0;
-      --el-table-border-color: #ebeef5;
+      --el-table-border-color: #b8c1cc;
       --el-table-header-bg-color: #f8f9fb;
       --el-table-header-text-color: #303133;
       --el-table-row-hover-bg-color: #f5f7fa;

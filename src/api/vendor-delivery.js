@@ -67,6 +67,22 @@ export function confirmReplyDate(data) {
   })
 }
 
+export function getDeliveryLabel(params) {
+  return request({
+    url: '/vendor/delivery/label',
+    method: 'get',
+    params
+  })
+}
+
+export function saveDeliveryLabel(data) {
+  return request({
+    url: '/vendor/delivery/label',
+    method: 'post',
+    data
+  })
+}
+
 export function getMyForecastList(params) {
   return request({
     url: '/vendor/orderForecast/myList',

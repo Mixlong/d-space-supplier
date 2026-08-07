@@ -1,11 +1,11 @@
 import request from '@/utils/request'
 
-export function login(username, password, code, uuid) {
-  return request.post('/login', { username, password, code, uuid })
+export function login(username, password, code) {
+  return request.post('/login', { username, password, code })
 }
 
-export function getCaptcha() {
-  return request.get('/captchaImage', { headers: { isToken: false } })
+export function sendSmsCode(username) {
+  return request.post('/sms/send', { username }, { headers: { isToken: false } })
 }
 
 export function getInfo() {
