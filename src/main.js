@@ -15,7 +15,7 @@ import plugins from "./plugins"
 
 import SearchBar from "@/components/SearchBar/index.vue"
 import PageTable from "@/components/PageTable/index.vue"
-import FileUpload from "@monorepo/vue3-components/FileUpload"
+import FileUpload from "@/components/FileUpload/index.vue"
 import request from "@/utils/request"
 import { checkForAppUpdateWithPrompt } from "./updater"
 import { ensureAutoStartEnabled } from "./autostart"
