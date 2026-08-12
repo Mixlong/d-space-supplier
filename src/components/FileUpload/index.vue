@@ -233,7 +233,7 @@ import Sortable from 'sortablejs'
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import draggable from 'vuedraggable/dist/vuedraggable.common'
 
-import { getGlobalRequest } from '../useRequest.js'
+import request from '@/utils/request'
 import FilePreview from './FilePreview.vue'
 
 const DEFAULT_UPLOAD_BASE_URL = 'http://config-admin-api.riding-evolved.com'
@@ -535,7 +535,6 @@ async function handlePdfConvert(file) {
     formData.append('file', file)
     
     const converter = props.pdfConverter || (data => {
-      const request = getGlobalRequest()
       if (!request) throw new Error('PDF 转换需要先配置全局 request 或传入 pdfConverter')
       return request({
         url: '/file/converterToOss',
