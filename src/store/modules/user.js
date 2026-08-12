@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { login, logout, getInfo } from '@/api/login'
+import { getVendorBluetoothConfig } from '@/api/vendor-bluetooth'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import { isHttp, isEmpty } from '@/utils/validate'
 
@@ -11,7 +12,10 @@ const useUserStore = defineStore('user', {
     nickName: '',
     avatar: '',
     roles: [],
-    permissions: []
+    permissions: [],
+    isInfoFetched: false,
+    bluetoothConfigStatus: 0,
+    isBluetoothConfigFetched: false
   }),
   actions: {
     login(userInfo) {
@@ -37,10 +41,24 @@ const useUserStore = defineStore('user', {
           })
       })
     },
+    getBluetoothConfig() {
+      return getVendorBluetoothConfig()
+        .then(res => {
+          const status = res?.data?.bluetoothConfigStatus ?? res?.data ?? res?.bluetoothConfigStatus ?? 0
+          this.bluetoothConfigStatus = Number(status) === 1 ? 1 : 0
+          this.isBluetoothConfigFetched = true
+          return this.bluetoothConfigStatus
+        })
+        .catch(() => {
+          this.bluetoothConfigStatus = 0
+          this.isBluetoothConfigFetched = true
+          return 0
+        })
+    },
     getInfo() {
       return new Promise((resolve, reject) => {
-        getInfo()
-          .then(res => {
+        Promise.all([getInfo(), this.getBluetoothConfig().catch(() => 0)])
+          .then(([res]) => {
             const user = res.user
             let avatar = user.avatar || ''
             if (!isHttp(avatar)) {
@@ -48,14 +66,16 @@ const useUserStore = defineStore('user', {
             }
             if (res.roles && res.roles.length > 0) {
               this.roles = res.roles
-              this.permissions = res.permissions
+              this.permissions = Array.isArray(res.permissions) ? res.permissions : []
             } else {
-              this.roles = ['ROLE_DEFAULT']
+              this.roles = []
+              this.permissions = Array.isArray(res.permissions) ? res.permissions : []
             }
             this.id = user.userId || user.id || ''
             this.name = user.userName || user.username || user.name || ''
             this.nickName = user.nickName || user.nickname || user.realName || this.name
             this.avatar = avatar
+            this.isInfoFetched = true
             resolve(res)
           })
           .catch(error => {
@@ -68,6 +88,9 @@ const useUserStore = defineStore('user', {
         this.token = ''
         this.roles = []
         this.permissions = []
+        this.isInfoFetched = false
+        this.bluetoothConfigStatus = 0
+        this.isBluetoothConfigFetched = false
         removeToken()
         sessionStorage.clear()
       }

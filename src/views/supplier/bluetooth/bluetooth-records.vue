@@ -459,18 +459,15 @@ function formatAuditRemarks(logs) {
   }).filter(item => item.remark)
 }
 
-async function loadAuditRemarks(rows) {
-  const results = await Promise.all(rows.map(async row => {
+function loadAuditRemarks(rows) {
+  const remarksMap = {}
+  rows.forEach(row => {
     const id = idOf(row)
-    if (!id) return [id, []]
-    try {
-      const logs = getLogList(await getBluetoothApplyLogs(id))
-      return [id, formatAuditRemarks(logs)]
-    } catch {
-      return [id, []]
+    if (id && Array.isArray(row.logs)) {
+      remarksMap[id] = formatAuditRemarks(row.logs)
     }
-  }))
-  auditRemarks.value = Object.fromEntries(results.filter(([id]) => id))
+  })
+  auditRemarks.value = remarksMap
 }
 
 function handleFileUploadChange(value, fileList) {

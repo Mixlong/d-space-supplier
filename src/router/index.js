@@ -22,20 +22,37 @@ export const constantRoutes = [
     path: "/supplier",
     component: Layout,
     redirect: "/supplier/delivery/my-purchase-orders",
-    hidden: true,
     meta: { title: "订单交付", icon: "OfficeBuilding" },
     children: [
       {
         path: "delivery/my-purchase-orders",
         component: () => import("@/views/supplier/delivery/my-purchase-orders.vue"),
         name: "MyPurchaseOrders",
-        meta: { title: "未交订单", icon: "Tickets" },
+        meta: {
+          title: "未交订单",
+          icon: "Tickets",
+          permissions: [
+            "supplier:delivery:query",
+            "supplier:delivery:myPurchaseOrders",
+            "vendor:delivery:query",
+            "vendor:delivery:myPurchaseOrders",
+          ],
+        },
       },
       {
         path: "delivery/my-confirmations",
         component: () => import("@/views/supplier/delivery/my-confirmations.vue"),
         name: "MyConfirmations",
-        meta: { title: "已交订单", icon: "DocumentCopy" },
+        meta: {
+          title: "已交订单",
+          icon: "DocumentCopy",
+          permissions: [
+            "supplier:delivery:query",
+            "supplier:delivery:myConfirmations",
+            "vendor:delivery:query",
+            "vendor:delivery:myConfirmations",
+          ],
+        },
       },
       // {
       //   path: "delivery/my-forecast",
@@ -48,8 +65,7 @@ export const constantRoutes = [
   {
     path: "/assessment",
     component: Layout,
-    redirect: "/assessment/specs-drawings",
-    hidden: true,
+    redirect: "/assessment/incoming-quality",
     alwaysShow: true,
     meta: { title: "质量情况", icon: "DataAnalysis" },
     children: [
@@ -63,7 +79,16 @@ export const constantRoutes = [
         path: "incoming-quality",
         component: () => import("@/views/supplier/delivery/incoming-quality.vue"),
         name: "IncomingQuality",
-        meta: { title: "来料质量", icon: "Histogram" },
+        meta: {
+          title: "来料质量",
+          icon: "Histogram",
+          permissions: [
+            "supplier:quality:query",
+            "supplier:assessment:query",
+            "supplier:quality:incoming",
+            "vendor:quality:query",
+          ],
+        },
       },
       // {
       //   path: "process-quality",
@@ -103,14 +128,22 @@ export const constantRoutes = [
     path: "/timeliness",
     component: Layout,
     redirect: "/timeliness/index",
-    hidden: true,
     meta: { title: "季度考核", icon: "DataLine" },
     children: [
       {
         path: "index",
         component: () => import("@/views/supplier/delivery/my-timeliness.vue"),
         name: "AssessmentRecords",
-        meta: { title: "季度考核", icon: "DataLine" },
+        meta: {
+          title: "季度考核",
+          icon: "DataLine",
+          permissions: [
+            "supplier:assessment:query",
+            "vendor:assessment:query",
+            "supplier:timeliness:query",
+            "vendor:delivery:timeliness:query",
+          ],
+        },
       },
     ],
   },
@@ -132,8 +165,16 @@ export const constantRoutes = [
   },
   {
     path: "/401",
-    component: () => import("@/views/error/401.vue"),
+    component: Layout,
     hidden: true,
+    children: [
+      {
+        path: "",
+        component: () => import("@/views/error/401.vue"),
+        name: "Page401",
+        meta: { title: "无权限" }
+      }
+    ]
   },
   {
     path: "/:pathMatch(.*)*",

@@ -50,6 +50,8 @@ import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import useUserStore from '@/store/modules/user'
 import { sendSmsCode } from '@/api/login'
+import { constantRoutes } from '@/router'
+import { getDefaultAccessiblePath } from '@/utils/permission'
 import logoMark from '@/assets/images/logo/logo.png'
 import loginBg from '@/assets/images/login/bg11.png'
 
@@ -153,8 +155,9 @@ function handleLogin() {
     loading.value = true
     try {
       await userStore.login(loginForm)
+      await userStore.getInfo()
       persistLoginCache()
-      const redirect = route.query.redirect || '/bluetooth/version'
+      const redirect = route.query.redirect || getDefaultAccessiblePath(constantRoutes, userStore) || '/401'
       router.push(redirect)
     } catch (error) {
       ElMessage.error(error?.message || error?.response?.data?.msg || '登录失败，请检查账号密码')

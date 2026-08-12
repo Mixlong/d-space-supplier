@@ -31,3 +31,7 @@ export function getBluetoothApplyDetail(id) {
 export function getBluetoothApplyLogs(id) {
     return request({ url: `/vendor/bluetooth/firmware/apply/${id}/logs`, method: 'get' })
 }
+
+export function getVendorBluetoothConfig() {
+    return request({ url: '/vendor/bluetooth/config', method: 'get' })
+}

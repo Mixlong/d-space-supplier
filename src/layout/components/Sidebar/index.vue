@@ -48,11 +48,20 @@ import useAppStore from '@/store/modules/app'
 import { constantRoutes } from '@/router'
 import logoImage from '@/assets/images/logo/logo.png'
 
+import useUserStore from '@/store/modules/user'
+import { filterAccessibleRoutes } from '@/utils/permission'
+
 const route = useRoute()
+const userStore = useUserStore()
 const appVersion = ref(`v${import.meta.env.VITE_APP_VERSION || '1.0.0'}`)
 
 const sidebarRoutes = computed(() => {
-  return constantRoutes.filter(r => !r.hidden)
+  return filterAccessibleRoutes(constantRoutes, userStore).filter(r => {
+    if (r.path === '/bluetooth' && userStore.bluetoothConfigStatus !== 1) {
+      return false
+    }
+    return true
+  })
 })
 
 const activeMenu = computed(() => {
