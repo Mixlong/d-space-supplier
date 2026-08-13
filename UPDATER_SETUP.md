@@ -1,6 +1,6 @@
 # Tauri 自动更新配置
 
-当前项目已接入 updater 插件，但默认是关闭状态（`active: false`）。
+当前项目已接入并启用 updater 插件（`active: true`）。
 
 ## 1. 生成 updater 密钥
 
@@ -19,14 +19,9 @@ pnpm tauri signer generate -w ~/.tauri/d-space-updater.key
 例如：
 - `https://your-domain.com/tauri-updater/latest.json`
 
-## 3. 启用自动更新
-
-把：
-- `plugins.updater.active` 从 `false` 改为 `true`
-
-## 4. 前端触发检查（可选）
+## 3. 前端触发检查
 
 已提供：
-- `src/updater.js` 中 `checkForAppUpdate()`
+- `src/updater.js` 中 `checkForAppUpdateWithPrompt()`
 
 你可以在登录后或设置页点击“检查更新”时调用它。

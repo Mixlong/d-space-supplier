@@ -65,6 +65,7 @@ jobs:
             src-tauri/target/release/bundle/**/*.tar.gz
             src-tauri/target/release/bundle/**/*.sig
             src-tauri/target/release/bundle/**/latest.json
+            package.json
           if-no-files-found: ignore
 
       - name: Install ossutil
@@ -120,9 +121,9 @@ jobs:
             find "$BUNDLE_DIR" -type f | sed -n '1,200p'
             exit 1
           fi
-          FIXED_DMG_NAME="D-Space.dmg"
-          FIXED_TAR_NAME="D-Space.tar.gz"
-          FIXED_SIG_NAME="D-Space.tar.gz.sig"
+          FIXED_DMG_NAME="supplier-D-Space.dmg"
+          FIXED_TAR_NAME="supplier-D-Space.tar.gz"
+          FIXED_SIG_NAME="supplier-D-Space.tar.gz.sig"
           FIXED_TAR_URL="https://${OSS_BUCKET}.oss-${REGION}.aliyuncs.com/d-space/supplier-desktop/darwin/${FIXED_TAR_NAME}"
           APP_VERSION=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('package.json','utf8'));process.stdout.write(c.version)")
           GENERATED_LATEST="${RUNNER_TEMP}/latest.json"

@@ -21,7 +21,7 @@ function isInstallLocationError(error) {
 }
 
 function resolveManualDownloadUrl(updateUrl) {
-  const fallback = "https://bikewise.oss-cn-shenzhen.aliyuncs.com/d-space/supplier-desktop/darwin/D-Space.tar.gz"
+  const fallback = "https://bikewise.oss-cn-shenzhen.aliyuncs.com/d-space/supplier-desktop/darwin/supplier-D-Space.tar.gz"
   if (!updateUrl) return fallback
   try {
     const parsed = new URL(updateUrl)

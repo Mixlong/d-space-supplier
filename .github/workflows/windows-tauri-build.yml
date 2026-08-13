@@ -60,7 +60,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-nsis
-          path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/**
+          path: |
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/**
+            package.json
           if-no-files-found: ignore
 
       - name: Install ossutil
@@ -104,8 +106,8 @@ jobs:
             "oss://$($env:OSS_BUCKET)/d-space/supplier-desktop/windows-x86_64",
             "oss://$($env:OSS_BUCKET)/d-space/supplier-desktop/windows-x86_64-msvc"
           )
-          $fixedExeName = "D-Space-x64-setup.exe"
-          $fixedSigName = "D-Space-x64-setup.exe.sig"
+          $fixedExeName = "supplier-D-Space-x64-setup.exe"
+          $fixedSigName = "supplier-D-Space-x64-setup.exe.sig"
           $fixedExeUrl = "https://$($env:OSS_BUCKET).oss-$region.aliyuncs.com/d-space/supplier-desktop/windows/$fixedExeName"
           $pkg = Get-Content package.json -Raw | ConvertFrom-Json
           $version = $pkg.version
