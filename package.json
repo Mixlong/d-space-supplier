@@ -18,6 +18,7 @@
     "release:oss:macos": "PLATFORM=macos bash scripts/release-oss.sh",
     "release:oss:windows": "PLATFORM=windows bash scripts/release-oss.sh",
     "release:oss:github-artifacts": "bash scripts/publish-github-artifacts-oss.sh",
+    "release:all": "bash scripts/release-all.sh",
     "preview": "vite preview",
     "pretauri": "pnpm sync:tauri-version",
     "tauri": "tauri",

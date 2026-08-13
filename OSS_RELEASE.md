@@ -2,6 +2,21 @@
 
 OSS 启用了来源 IP 白名单，因此构建和上传必须在已加入白名单的本机网络中完成。不要使用 GitHub Actions 的 `publish_to_oss`，云端 Runner 不会通过该白名单。
 
+## 一键发布
+
+```bash
+pnpm release:all
+```
+
+默认升补丁版本，例如 `1.0.0` 到 `1.0.1`，并自动完成提交、推送、双端 GitHub 构建、下载 Artifact 和本机 OSS 上传。需要升小版本或大版本时：
+
+```bash
+pnpm release:all minor
+pnpm release:all major
+```
+
+执行前仅允许存在 `artifacts/` 本地下载目录；其他改动必须先提交。
+
 ## 推荐流程：GitHub 打包，本机上传
 
 在 GitHub Actions 分别手动执行 `Windows Tauri Build` 和 `macOS Tauri Build`，两次都保持 `publish_to_oss=false`。构建工作流不需要配置 OSS 凭证，但必须配置 `TAURI_SIGNING_PRIVATE_KEY` 与 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`，否则不会产生在线更新所需的 `.sig` 文件。

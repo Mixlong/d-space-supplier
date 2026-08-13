@@ -36,3 +36,4 @@ pnpm-debug.log*
 
 # Rust / Tauri build outputs
 src-tauri/target/
+artifacts/
