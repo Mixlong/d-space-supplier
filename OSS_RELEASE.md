@@ -21,6 +21,13 @@ pnpm release:oss:github-artifacts -- --windows-run <Windows-Run-ID>
 pnpm release:oss:github-artifacts -- --macos-run <macOS-Run-ID>
 ```
 
+GitHub 下载超时时，可先手动下载 Artifact 后直接上传：
+
+```bash
+pnpm release:oss:github-artifacts -- --windows-dir ./artifacts/windows
+pnpm release:oss:github-artifacts -- --macos-dir ./artifacts/macos
+```
+
 ## 本机打包发布
 
 - macOS 包可以在这台 Mac 上构建和发布。
@@ -36,6 +43,7 @@ pnpm release:oss:github-artifacts -- --macos-run <macOS-Run-ID>
 export OSS_BASE="oss://bikewise"
 export OSS_PUBLIC_BASE="https://bikewise.oss-cn-shenzhen.aliyuncs.com"
 export OSS_DIR="d-space/supplier-desktop"
+export OSS_REGION="cn-shenzhen"
 export TAURI_SIGNING_PRIVATE_KEY_PATH="$HOME/.tauri/d-space-updater.key"
 export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="私钥密码"
 ```

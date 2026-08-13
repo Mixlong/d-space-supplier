@@ -55,8 +55,17 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: pnpm tauri build --bundles app,dmg
 
+      - name: Verify macOS updater artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE_DIR="src-tauri/target/release/bundle"
+          find "$BUNDLE_DIR" -type f | sed -n '1,200p'
+          test -n "$(find "$BUNDLE_DIR" -type f -name '*.dmg' -print -quit)"
+          test -n "$(find "$BUNDLE_DIR" -type f -name '*.tar.gz' -print -quit)"
+          test -n "$(find "$BUNDLE_DIR" -type f -name '*.tar.gz.sig' -print -quit)"
+
       - name: Upload macOS artifacts
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: macos-app-dmg

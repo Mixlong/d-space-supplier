@@ -116,7 +116,7 @@ esac
 
 VERSION="$(node -p "require('./package.json').version")"
 UPDATE_URL="$OSS_PUBLIC_BASE/$OSS_DIR/$PLATFORM_DIR/$UPDATE_FILE_NAME"
-LATEST_JSON="$(mktemp "${TMPDIR:-/tmp}/supplier-admin-latest.XXXXXX.json")"
+LATEST_JSON="$(mktemp "${TMPDIR:-/tmp}/supplier-admin-latest.XXXXXX")"
 trap 'rm -f "$LATEST_JSON"' EXIT
 
 node -e "const fs=require('fs');const [out, version, url, sigFile]=process.argv.slice(1);fs.writeFileSync(out, JSON.stringify({version,notes:'',pub_date:new Date().toISOString(),url,signature:fs.readFileSync(sigFile,'utf8').trim()}, null, 2)+'\\n');" "$LATEST_JSON" "$VERSION" "$UPDATE_URL" "$SIG_FILE"

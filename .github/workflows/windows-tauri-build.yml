@@ -55,8 +55,16 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: pnpm tauri build --target x86_64-pc-windows-msvc --bundles nsis
 
+      - name: Verify Windows updater artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE_DIR="src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis"
+          find "$BUNDLE_DIR" -type f | sed -n '1,200p'
+          test -n "$(find "$BUNDLE_DIR" -type f -name '*.exe' -print -quit)"
+          test -n "$(find "$BUNDLE_DIR" -type f -name '*.exe.sig' -print -quit)"
+
       - name: Upload NSIS artifacts
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: windows-nsis

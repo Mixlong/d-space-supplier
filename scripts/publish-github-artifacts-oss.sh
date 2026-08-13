@@ -20,7 +20,7 @@ require_env() {
 }
 
 upload() {
-  ossutil cp "$1" "$2" --update
+  ossutil --region "$OSS_REGION" cp "$1" "$2" --update
 }
 
 release_version() {
@@ -39,7 +39,7 @@ publish_windows() {
   fi
 
   version="$(release_version "$package_json")"
-  latest_json="$(mktemp "${TMPDIR:-/tmp}/supplier-admin-windows.XXXXXX.json")"
+  latest_json="$(mktemp "${TMPDIR:-/tmp}/supplier-admin-windows.XXXXXX")"
   node -e "const fs=require('fs');const [out, version, url, sigFile]=process.argv.slice(1);fs.writeFileSync(out,JSON.stringify({version,notes:'',pub_date:new Date().toISOString(),url,signature:fs.readFileSync(sigFile,'utf8').trim()},null,2)+'\\n');" "$latest_json" "$version" "$OSS_PUBLIC_BASE/$OSS_DIR/windows/supplier-D-Space-x64-setup.exe" "$sig_file"
 
   echo "[INFO] publishing Windows $version"
@@ -63,7 +63,7 @@ publish_macos() {
   fi
 
   version="$(release_version "$package_json")"
-  latest_json="$(mktemp "${TMPDIR:-/tmp}/supplier-admin-macos.XXXXXX.json")"
+  latest_json="$(mktemp "${TMPDIR:-/tmp}/supplier-admin-macos.XXXXXX")"
   node -e "const fs=require('fs');const [out, version, url, sigFile]=process.argv.slice(1);fs.writeFileSync(out,JSON.stringify({version,notes:'',pub_date:new Date().toISOString(),url,signature:fs.readFileSync(sigFile,'utf8').trim()},null,2)+'\\n');" "$latest_json" "$version" "$OSS_PUBLIC_BASE/$OSS_DIR/darwin/supplier-D-Space.tar.gz" "$sig_file"
 
   echo "[INFO] publishing macOS $version"
@@ -77,21 +77,25 @@ publish_macos() {
 
 WINDOWS_RUN_ID=""
 MACOS_RUN_ID=""
+WINDOWS_ARTIFACT_DIR=""
+MACOS_ARTIFACT_DIR=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --) shift ;;
     --windows-run) WINDOWS_RUN_ID="${2:-}"; shift 2 ;;
     --macos-run) MACOS_RUN_ID="${2:-}"; shift 2 ;;
+    --windows-dir) WINDOWS_ARTIFACT_DIR="${2:-}"; shift 2 ;;
+    --macos-dir) MACOS_ARTIFACT_DIR="${2:-}"; shift 2 ;;
     *) echo "[ERROR] unknown argument: $1"; exit 1 ;;
   esac
 done
 
-if [[ -z "$WINDOWS_RUN_ID" && -z "$MACOS_RUN_ID" ]]; then
+if [[ -z "$WINDOWS_RUN_ID" && -z "$MACOS_RUN_ID" && -z "$WINDOWS_ARTIFACT_DIR" && -z "$MACOS_ARTIFACT_DIR" ]]; then
   echo "Usage: $0 --windows-run <run-id> [--macos-run <run-id>]"
-  echo "   or: $0 --macos-run <run-id>"
+  echo "   or: $0 --windows-dir <artifact-dir> [--macos-dir <artifact-dir>]"
   exit 1
 fi
 
-require_cmd gh
 require_cmd ossutil
 require_cmd node
 require_cmd find
@@ -101,14 +105,21 @@ require_env OSS_PUBLIC_BASE
 OSS_BASE="${OSS_BASE%/}"
 OSS_PUBLIC_BASE="${OSS_PUBLIC_BASE%/}"
 OSS_DIR="${OSS_DIR:-d-space/supplier-desktop}"
+OSS_REGION="${OSS_REGION:-cn-shenzhen}"
 ARTIFACT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/supplier-admin-artifacts.XXXXXX")"
 
-if [[ -n "$WINDOWS_RUN_ID" ]]; then
+if [[ -n "$WINDOWS_ARTIFACT_DIR" ]]; then
+  publish_windows "$WINDOWS_ARTIFACT_DIR"
+elif [[ -n "$WINDOWS_RUN_ID" ]]; then
+  require_cmd gh
   gh run download "$WINDOWS_RUN_ID" --name windows-nsis --dir "$ARTIFACT_DIR/windows"
   publish_windows "$ARTIFACT_DIR/windows"
 fi
 
-if [[ -n "$MACOS_RUN_ID" ]]; then
+if [[ -n "$MACOS_ARTIFACT_DIR" ]]; then
+  publish_macos "$MACOS_ARTIFACT_DIR"
+elif [[ -n "$MACOS_RUN_ID" ]]; then
+  require_cmd gh
   gh run download "$MACOS_RUN_ID" --name macos-app-dmg --dir "$ARTIFACT_DIR/macos"
   publish_macos "$ARTIFACT_DIR/macos"
 fi
