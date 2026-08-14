@@ -99,9 +99,9 @@ fi
 require_cmd ossutil
 require_cmd node
 require_cmd find
-require_env OSS_BASE
-require_env OSS_PUBLIC_BASE
 
+OSS_BASE="${OSS_BASE:-oss://bikewise}"
+OSS_PUBLIC_BASE="${OSS_PUBLIC_BASE:-https://bikewise.oss-cn-shenzhen.aliyuncs.com}"
 OSS_BASE="${OSS_BASE%/}"
 OSS_PUBLIC_BASE="${OSS_PUBLIC_BASE%/}"
 OSS_DIR="${OSS_DIR:-d-space/supplier-desktop}"
