@@ -33,6 +33,13 @@
             </span>
           </template>
         </el-table-column>
+        <el-table-column label="申请来源" width="125" align="center">
+          <template #default="{ row }">
+            <el-tag :type="applySourceType(row)" size="small" effect="light">
+              {{ applySourceLabel(row) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="materialCode" label="物料编码" width="130" align="center" show-overflow-tooltip />
         <el-table-column prop="versionNumber" label="版本信息" width="150" align="center" show-overflow-tooltip />
         <el-table-column prop="chipPlatform" label="模块型号" width="130" align="center" show-overflow-tooltip />
@@ -60,9 +67,11 @@
         <el-table-column label="操作" width="180" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" @click="openDetail(row)">详情</el-button>
-            <el-button v-if="canEditDuringAudit(row)" link type="primary" @click="openPublishDialog(row, true)">编辑</el-button>
-            <el-button v-else-if="canPublish(row)" link type="primary" @click="openPublishDialog(row)">提交审核</el-button>
-            <el-button v-if="Number(row.processState) !== 50" link type="danger" @click="removeApply(row)">删除</el-button>
+            <template v-if="!isDitaiApply(row)">
+              <el-button v-if="canEditDuringAudit(row)" link type="primary" @click="openPublishDialog(row, true)">编辑</el-button>
+              <el-button v-else-if="canPublish(row)" link type="primary" @click="openPublishDialog(row)">提交审核</el-button>
+              <el-button v-if="Number(row.processState) !== 50" link type="danger" @click="removeApply(row)">删除</el-button>
+            </template>
           </template>
         </el-table-column>
         <template #empty>
@@ -169,6 +178,9 @@
       <div v-loading="detailLoading" class="detail-body">
         <el-descriptions :column="2" border class="version-descriptions" v-if="detail">
           <el-descriptions-item label="申请类型">{{ applyTypeLabel(detail.applyType) }}</el-descriptions-item>
+          <el-descriptions-item label="申请来源">
+            <el-tag :type="applySourceType(detail)" size="small" effect="light">{{ applySourceLabel(detail) }}</el-tag>
+          </el-descriptions-item>
           <el-descriptions-item label="流程状态"><el-tag :type="stateType(detail.processState)">{{ stateLabel(detail.processState) }}</el-tag></el-descriptions-item>
           <el-descriptions-item label="物料编码">{{ detail.materialCode || '-' }}</el-descriptions-item>
           <el-descriptions-item label="版本信息">{{ detail.versionNumber || '-' }}</el-descriptions-item>
@@ -279,6 +291,9 @@ function listData(res) { const data = unwrap(res); return { list: data.list || d
 function applyTypeLabel(value) { return applyTypes.find(item => Number(item.value) === Number(value))?.label || '-' }
 function stateLabel(value) { return processStates.find(item => Number(item.value) === Number(value))?.label || '未知状态' }
 function stateType(value) { return ({ 20: 'danger', 40: 'danger', 50: 'success', 60: 'info', 10: 'warning', 30: 'warning' })[Number(value)] || 'info' }
+function applySourceLabel(row = {}) { return row.applySourceName || '-' }
+function isDitaiApply(row = {}) { return String(row.applySourceName || '').trim() === '迪太云' }
+function applySourceType(row) { return isDitaiApply(row) ? 'primary' : 'success' }
 function getStatusBadgeClass(state) {
   const num = Number(state)
   if (num === 50) return 'is-success'
@@ -297,7 +312,7 @@ function errorMessage(error, fallback) {
 function getHeaderCellStyle({ column }) {
   const label = column?.label
 
-  if (['序号', '申请类型', '操作'].includes(label)) {
+  if (['序号', '申请类型', '申请来源', '操作'].includes(label)) {
     return { background: '#2f80c1', color: '#ffffff', fontWeight: 600 }
   }
 
@@ -520,6 +535,10 @@ function resetQuery() {
 }
 
 async function openPublishDialog(row, editingDuringAudit = false) {
+  if (isDitaiApply(row)) {
+    ElMessage.warning('迪太发起的申请不能编辑')
+    return
+  }
   Object.assign(applyForm, emptyForm(), { ...row, applyType: Number(row.applyType), version: row.version })
   currentFileName.value = row.fileName || ''
   isRepublish.value = true
@@ -544,6 +563,10 @@ async function openPublishDialog(row, editingDuringAudit = false) {
 }
 
 async function submitApply() {
+  if (isDitaiApply(applyForm)) {
+    ElMessage.warning('迪太发起的申请不能编辑')
+    return
+  }
   if (!(await applyFormRef.value?.validate().catch(() => false))) return
   submitLoading.value = true
   try {
@@ -569,6 +592,10 @@ async function submitApply() {
 }
 
 async function removeApply(row) {
+  if (isDitaiApply(row)) {
+    ElMessage.warning('迪太发起的申请不能删除')
+    return
+  }
   try {
     await ElMessageBox.confirm('删除后申请将撤回，审核待办也会失效，是否继续？', '确认删除', { type: 'warning' })
     await deleteBluetoothApply(idOf(row))
@@ -587,7 +614,7 @@ async function openDetail(row) {
   try {
     const id = idOf(row)
     const [detailRes, logsRes] = await Promise.all([getBluetoothApplyDetail(id), getBluetoothApplyLogs(id)])
-    detail.value = unwrap(detailRes)
+    detail.value = { ...row, ...unwrap(detailRes) }
     logs.value = normalizeLogs(getLogList(logsRes))
   } catch {
     ElMessage.error('获取申请详情失败')

@@ -32,6 +32,33 @@ function getFileNameFromUrl(url) {
   }
 }
 
+function isTauriDesktop() {
+  return typeof window !== 'undefined' && Boolean(window.__TAURI_INTERNALS__)
+}
+
+function normalizeFileName(fileName) {
+  return String(fileName || '下载文件').replace(/[\\/:*?"<>|]/g, '_')
+}
+
+async function saveBlob(blob, fileName) {
+  const normalizedFileName = normalizeFileName(fileName)
+
+  if (!isTauriDesktop()) {
+    saveAs(blob, normalizedFileName)
+    return true
+  }
+
+  const [{ save }, { writeFile }] = await Promise.all([
+    import('@tauri-apps/plugin-dialog'),
+    import('@tauri-apps/plugin-fs'),
+  ])
+  const filePath = await save({ defaultPath: normalizedFileName })
+  if (!filePath) return false
+
+  await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()))
+  return true
+}
+
 function createDownloadLoading() {
   return ElLoading.service({
     lock: true,
@@ -40,7 +67,7 @@ function createDownloadLoading() {
   })
 }
 
-export async function urlDownload(url) {
+export async function urlDownload(url, fileName) {
   const targetUrl = normalizeDownloadUrl(url)
   if (!targetUrl) throw new Error('下载文件地址为空')
 
@@ -50,7 +77,7 @@ export async function urlDownload(url) {
     responseType: 'arraybuffer',
   })
   const blob = new Blob([response.data], { type: response.headers['content-type'] })
-  saveAs(blob, getFileNameFromUrl(targetUrl))
+  return saveBlob(blob, fileName || getFileNameFromUrl(targetUrl))
 }
 
 async function getFile(url) {
@@ -77,7 +104,7 @@ export async function zipFile(value, fileName) {
   const loading = createDownloadLoading()
   try {
     if (fileUrls.length === 1) {
-      await urlDownload(fileUrls[0])
+      await urlDownload(fileUrls[0], fileName === '蓝牙固件' ? undefined : fileName)
       return
     }
 
@@ -85,7 +112,7 @@ export async function zipFile(value, fileName) {
     await Promise.all(fileUrls.map(async url => {
       zip.file(getFileNameFromUrl(url), await getFile(url), { binary: true })
     }))
-    saveAs(await zip.generateAsync({ type: 'blob' }), `${fileName || '蓝牙固件'}.zip`)
+    await saveBlob(await zip.generateAsync({ type: 'blob' }), `${fileName || '蓝牙固件'}.zip`)
   } catch (error) {
     console.error(error)
     ElMessage.error('下载文件失败，请稍后重试')
