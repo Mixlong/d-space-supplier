@@ -276,12 +276,33 @@ const props = defineProps({
   downloadHandler: { type: Function, default: null }
 })
 
+function adaptProtocol(url) {
+  if (!url || typeof url !== 'string') return url
+  const isHttps = typeof window !== 'undefined' && window.location?.protocol === 'https:'
+  if (url.startsWith('//')) {
+    const protocol = (typeof window !== 'undefined' && window.location?.protocol) ? window.location.protocol : 'https:'
+    return `${protocol}${url}`
+  }
+  if (isHttps && /^http:\/\//i.test(url)) {
+    return url.replace(/^http:\/\//i, 'https://')
+  }
+  return url
+}
+
 const { proxy } = getCurrentInstance()
 const emit = defineEmits([ 'update:modelValue', 'change', 'upload-success', 'upload-error' ])
 const number = ref(0)
 const uploadList = ref([])
-const baseUrl = computed(() => props.baseUrl || import.meta.env.VITE_APP_BASE_API || '')
-const uploadFileUrl = computed(() => /^https?:\/\//i.test(props.action) ? props.action : `${baseUrl.value}${props.action}`)
+const baseUrl = computed(() => {
+  const url = props.baseUrl || import.meta.env.VITE_APP_BASE_API || DEFAULT_UPLOAD_BASE_URL
+  return adaptProtocol(url)
+})
+const uploadFileUrl = computed(() => {
+  if (/^https?:\/\//i.test(props.action) || props.action.startsWith('//')) {
+    return adaptProtocol(props.action)
+  }
+  return adaptProtocol(`${baseUrl.value}${props.action}`)
+})
 const fileList = ref([])
 const showTip = computed(() => props.isShowTip && (props.fileType?.length || props.fileSize))
 
@@ -463,8 +484,8 @@ function getImageIndex(file) {
 function getFileUrl(file) {
   const url = file.url
   if (!url) return ''
-  if (url.startsWith('http')) return url
-  return baseUrl.value + url
+  if (url.startsWith('http') || url.startsWith('//')) return adaptProtocol(url)
+  return adaptProtocol(baseUrl.value + url)
 }
 
 watch(
@@ -772,7 +793,8 @@ function handleNativeDrop(event) {
 function handlePreview(file) {
   const url = file.url
   if (!url) return
-  previewUrl.value = url.startsWith('http') ? url : baseUrl.value + url
+  const fullUrl = (url.startsWith('http') || url.startsWith('//')) ? url : baseUrl.value + url
+  previewUrl.value = adaptProtocol(fullUrl)
   previewName.value = getFileName(file.name)
   previewVisible.value = true
 }
